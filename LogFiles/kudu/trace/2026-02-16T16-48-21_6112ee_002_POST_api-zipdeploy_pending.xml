@@ -1,0 +1,19 @@
+<step title="Incoming Request" date="2026-02-16T16:48:21.562" instance="6112ee" url="/api/zipdeploy?isAsync=true" method="POST" type="request" pid="768,1,16" Accept="*/*" Host="cpsu-health-backend.scm.azurewebsites.net" User-Agent="curl/8.5.0" Authorization="Bas..." Content-Type="application/zip" Content-Length="183203" X-ARR-LOG-ID="4f6ae313-d78c-49d2-a1b1-b1a7c3dadc0f" CLIENT-IP="20.168.111.74:24064" X-SITE-DEPLOYMENT-ID="cpsu-health-backend" WAS-DEFAULT-HOSTNAME="cpsu-health-backend.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/zipdeploy?isAsync=true" X-Client-IP="20.168.111.74" X-Client-Port="24064" >
+  <step title="Cleanup Xml Logs" date="2026-02-16T16:48:21.565" /><!-- duration: 9ms -->
+  <step title="ZipPushDeploy" date="2026-02-16T16:48:21.606" >
+    <step title="ZipDeploy. Extract zip. Remote build." date="2026-02-16T16:48:21.615" /><!-- duration: 7ms -->
+    <step title="None repository commit" date="2026-02-16T16:48:21.632" >
+      <step title="Commit id: 09dc88ec-fa0c-4b53-a14e-fbbd1caf1bcb" date="2026-02-16T16:48:21.636" Message="N/A" AuthorName="N/A" AuthorEmail="N/A" /><!-- duration: 4ms -->
+    </step><!-- duration: 12ms -->
+    <step title="Starting PushDeployAsync" date="2026-02-16T16:48:21.648" /><!-- duration: 4ms -->
+    <step title="Writing artifact to /tmp/zipdeploy/510283fe-645b-40fa-9f63-09ef62ae8250.zip" date="2026-02-16T16:48:21.684" >
+      <step title="Writing multipart request body to /tmp/zipdeploy/510283fe-645b-40fa-9f63-09ef62ae8250.zip" date="2026-02-16T16:48:21.692" /><!-- duration: 20ms -->
+    </step><!-- duration: 334ms -->
+    <step title="Removing previous build artifact&apos;s manifest file" date="2026-02-16T16:48:22.030" >
+      <step title="Start deployment in the background" date="2026-02-16T16:48:22.051" >
+        <step title="Acquiring Deployment Lock" date="2026-02-16T16:48:22.088" /><!-- duration: 9ms -->
+        <step title="Acquired Deployment Lock" date="2026-02-16T16:48:22.138" /><!-- duration: 4ms -->
+      </step><!-- duration: 227ms -->
+    </step><!-- duration: 255ms -->
+    <step title="Outgoing response" date="2026-02-16T16:48:22.302" type="response" statusCode="202" statusText="Accepted" /><!-- duration: 4ms -->
+  </step><!-- duration: 704ms -->

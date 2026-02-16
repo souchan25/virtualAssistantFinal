@@ -1,0 +1,16 @@
+<step title="Incoming Request" date="2026-02-16T16:40:29.059" instance="6112ee" url="/api/zipdeploy?isAsync=true" method="POST" type="request" pid="768,1,23" Accept="*/*" Host="cpsu-health-backend.scm.azurewebsites.net" User-Agent="curl/8.5.0" Authorization="Bas..." Content-Type="application/zip" Content-Length="183000" X-ARR-LOG-ID="ae230fe9-5ee0-4abd-8d5c-ce951afdc772" CLIENT-IP="20.161.45.117:24576" X-SITE-DEPLOYMENT-ID="cpsu-health-backend" WAS-DEFAULT-HOSTNAME="cpsu-health-backend.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/zipdeploy?isAsync=true" X-Client-IP="20.161.45.117" X-Client-Port="24576" >
+  <step title="Cleanup Xml Logs" date="2026-02-16T16:40:29.064" /><!-- duration: 8ms -->
+  <step title="ZipPushDeploy" date="2026-02-16T16:40:29.090" >
+    <step title="ZipDeploy. Extract zip. Remote build." date="2026-02-16T16:40:29.098" /><!-- duration: 3ms -->
+    <step title="Starting PushDeployAsync" date="2026-02-16T16:40:29.107" /><!-- duration: 8ms -->
+    <step title="Writing artifact to /tmp/zipdeploy/6673fd75-6fe5-4f9b-a935-0bd7c84dec06.zip" date="2026-02-16T16:40:29.134" >
+      <step title="Writing multipart request body to /tmp/zipdeploy/6673fd75-6fe5-4f9b-a935-0bd7c84dec06.zip" date="2026-02-16T16:40:29.138" /><!-- duration: 12ms -->
+    </step><!-- duration: 523ms -->
+    <step title="Removing previous build artifact&apos;s manifest file" date="2026-02-16T16:40:29.674" >
+      <step title="Start deployment in the background" date="2026-02-16T16:40:29.695" >
+        <step title="Acquiring Deployment Lock" date="2026-02-16T16:40:29.721" /><!-- duration: 4ms -->
+        <step title="Acquired Deployment Lock" date="2026-02-16T16:40:29.752" /><!-- duration: 3ms -->
+      </step><!-- duration: 123ms -->
+    </step><!-- duration: 150ms -->
+    <step title="Outgoing response" date="2026-02-16T16:40:29.828" type="response" statusCode="202" statusText="Accepted" /><!-- duration: 4ms -->
+  </step><!-- duration: 744ms -->

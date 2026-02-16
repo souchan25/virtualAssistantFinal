@@ -97,6 +97,21 @@ jobs:
         echo "⏳ Waiting 90 seconds for deployment to complete..."
         sleep 90
         
+    - name: ⚙️ Configure startup command
+      run: |
+        PUBLISH_PROFILE='${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}'
+        USERNAME=$(echo "$PUBLISH_PROFILE" | grep -oP 'userName="\$[^"]+' | head -1 | cut -d'"' -f2)
+        PASSWORD=$(echo "$PUBLISH_PROFILE" | grep -oP 'userPWD="[^"]+' | head -1 | cut -d'"' -f2)
+        
+        echo "⚙️ Setting startup command..."
+        curl -X POST \
+          "https://$USERNAME:$PASSWORD@${{ env.AZURE_WEBAPP_NAME }}.scm.azurewebsites.net/api/settings" \
+          -H "Content-Type: application/json" \
+          -d '{"WEBSITE_STARTUP_FILE": "/home/site/wwwroot/startup.sh"}' \
+          -s
+        
+        echo "✅ Startup command configured"
+        
     - name: 🔄 Restart web app
       run: |
         PUBLISH_PROFILE='${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}'

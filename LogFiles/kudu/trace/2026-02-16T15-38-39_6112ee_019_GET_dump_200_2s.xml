@@ -1,0 +1,4 @@
+<step title="Incoming Request" date="2026-02-16T15:38:39.775" instance="6112ee" url="/dump" method="GET" type="request" pid="768,1,17" Host="cpsu-health-backend.scm.azurewebsites.net" User-Agent="AZURECLI/2.83.0 (MSI)" Accept-Encoding="identity" Authorization="Bea..." x-ms-client-request-id="8be0bc53-0b4d-11f1-9730-aec0725ec45c" X-ARR-LOG-ID="8be0bc53-0b4d-11f1-9730-aec0725ec45c" CLIENT-IP="103.107.81.10:55535" X-SITE-DEPLOYMENT-ID="cpsu-health-backend" WAS-DEFAULT-HOSTNAME="cpsu-health-backend.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/dump" X-Client-IP="103.107.81.10" X-Client-Port="55535" >
+  <step title="Cleanup Xml Logs" date="2026-02-16T15:38:39.795" /><!-- duration: 42ms -->
+  <step title="Outgoing response" date="2026-02-16T15:38:42.180" type="response" statusCode="200" statusText="OK" /><!-- duration: 10ms -->
+</step><!-- duration: 2433ms -->

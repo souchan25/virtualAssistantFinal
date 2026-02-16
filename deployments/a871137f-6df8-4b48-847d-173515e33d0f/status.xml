@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<deployment>
+  <id>a871137f-6df8-4b48-847d-173515e33d0f</id>
+  <author>N/A</author>
+  <deployer>Push-Deployer</deployer>
+  <authorEmail>N/A</authorEmail>
+  <message>Created via a push deployment</message>
+  <progress></progress>
+  <status>Success</status>
+  <statusText></statusText>
+  <lastSuccessEndTime>2026-02-16T14:21:22.5475619Z</lastSuccessEndTime>
+  <receivedTime>2026-02-16T14:21:18.352071Z</receivedTime>
+  <startTime>2026-02-16T14:21:19.8656382Z</startTime>
+  <endTime>2026-02-16T14:21:22.5475619Z</endTime>
+  <complete>True</complete>
+  <is_temp>False</is_temp>
+  <is_readonly>True</is_readonly>
+  <containerId>a460c88f11f2</containerId>
+  <buildSummary />
+</deployment>

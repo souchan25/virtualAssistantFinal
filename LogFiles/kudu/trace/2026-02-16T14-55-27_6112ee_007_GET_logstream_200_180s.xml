@@ -1,0 +1,6 @@
+<step title="Incoming Request" date="2026-02-16T14:55:27.302" instance="6112ee" url="/logstream" method="GET" type="request" pid="768,1,3" Host="cpsu-health-backend.scm.azurewebsites.net" User-Agent="AZURECLI/2.83.0 (MSI)" Accept-Encoding="identity" Authorization="Bea..." x-ms-client-request-id="71c2f32f-0b47-11f1-ad93-aec0725ec45c" X-ARR-LOG-ID="71c2f32f-0b47-11f1-ad93-aec0725ec45c" CLIENT-IP="103.107.81.10:62469" X-SITE-DEPLOYMENT-ID="cpsu-health-backend" WAS-DEFAULT-HOSTNAME="cpsu-health-backend.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/logstream" X-Client-IP="103.107.81.10" X-Client-Port="62469" >
+  <step title="Cleanup Xml Logs" date="2026-02-16T14:55:27.305" /><!-- duration: 6ms -->
+  <step title="LogStreamHandlerMiddleware.Invoke" date="2026-02-16T14:55:27.323" /><!-- duration: 55ms -->
+  <step title="Error occurred" date="2026-02-16T14:58:27.384" type="error" text="LogStreamManager: ProcessRequest end" /><!-- duration: 22ms -->
+  <step title="Outgoing response" date="2026-02-16T14:58:27.466" type="response" statusCode="200" statusText="OK" /><!-- duration: 30ms -->
+</step><!-- duration: 180205ms -->

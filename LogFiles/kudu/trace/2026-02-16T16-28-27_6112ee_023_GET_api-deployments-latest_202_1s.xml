@@ -1,0 +1,9 @@
+<step title="Incoming Request" date="2026-02-16T16:28:27.924" instance="6112ee" url="/api/deployments/latest" method="GET" type="request" pid="768,1,35" Accept="*/*" Host="cpsu-health-backend.scm.azurewebsites.net" User-Agent="AZURECLI/2.83.0 (MSI)" Accept-Encoding="gzip, deflate" Authorization="Bea..." x-ms-client-request-id="79cc1320-0b54-11f1-86c2-aec0725ec45c" X-ARR-LOG-ID="79cc1320-0b54-11f1-86c2-aec0725ec45c" CLIENT-IP="103.107.81.10:64227" X-SITE-DEPLOYMENT-ID="cpsu-health-backend" WAS-DEFAULT-HOSTNAME="cpsu-health-backend.scm.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/deployments/latest" X-Client-IP="103.107.81.10" X-Client-Port="64227" >
+  <step title="Cleanup Xml Logs" date="2026-02-16T16:28:27.927" /><!-- duration: 7ms -->
+  <step title="DeploymentService.GetResult" date="2026-02-16T16:28:27.948" >
+    <step title="DeploymentService.GetLatestDeployment" date="2026-02-16T16:28:27.972" >
+      <step title="DeploymentManager.GetResults" date="2026-02-16T16:28:27.975" /><!-- duration: 1181ms -->
+    </step><!-- duration: 1204ms -->
+  </step><!-- duration: 1239ms -->
+  <step title="Outgoing response" date="2026-02-16T16:28:29.205" type="response" statusCode="202" statusText="Accepted" /><!-- duration: 9ms -->
+</step><!-- duration: 1294ms -->
