@@ -152,7 +152,7 @@ Guidelines:
 - Be culturally sensitive to Filipino students
 - Never diagnose - only provide general health information"""
         
-        # Fallback chain: Groq → Qwen (OpenRouter) → Cohere → Gemini
+        # Fallback chain: Groq → Gemini → OpenRouter → Cohere
         
         # Try Groq first (fast, free tier)
         if self.groq_client:
@@ -174,9 +174,25 @@ Guidelines:
                 else:
                     raise ValueError("Empty response from Groq")
             except Exception as e:
-                self.logger.warning(f"Groq failed: {e}, trying OpenRouter...")
+                self.logger.warning(f"Groq failed: {e}, trying Gemini...")
         
-        # Try OpenRouter with Mistral free model
+        # Try Gemini second
+        if self.gemini_client:
+            try:
+                prompt = f"{system_prompt}\n\nUser message: {message}"
+                if context:
+                    prompt += f"\n\nContext: {context.get('summary', '')}"
+                
+                response = self.gemini_client.models.generate_content(
+                    model="gemini-2.5-flash-lite",
+                    contents=prompt
+                )
+                self.logger.info("Response from Gemini 2.5 Flash")
+                return response.text
+            except Exception as e:
+                self.logger.warning(f"Gemini failed: {e}, trying OpenRouter...")
+        
+        # Try OpenRouter third
         if self.openrouter_api_key:
             try:
                 # Prepare payload - json parameter will properly escape all special characters
@@ -215,7 +231,7 @@ Guidelines:
             except Exception as e:
                 self.logger.warning(f"OpenRouter failed: {e}, trying Cohere...")
         
-        # Try Cohere
+        # Try Cohere last
         if self.cohere_client:
             try:
                 response = self.cohere_client.chat(
@@ -225,23 +241,7 @@ Guidelines:
                 self.logger.info("Response from Cohere")
                 return response.text
             except Exception as e:
-                self.logger.warning(f"Cohere failed: {e}, trying Gemini...")
-        
-        # Try Gemini as last fallback (rate limited)
-        if self.gemini_client:
-            try:
-                prompt = f"{system_prompt}\n\nUser message: {message}"
-                if context:
-                    prompt += f"\n\nContext: {context.get('summary', '')}"
-                
-                response = self.gemini_client.models.generate_content(
-                    model="gemini-2.5-flash",
-                    contents=prompt
-                )
-                self.logger.info("Response from Gemini 2.5 Flash (last fallback)")
-                return response.text
-            except Exception as e:
-                self.logger.error(f"Gemini (last fallback) failed: {e}")
+                self.logger.error(f"Cohere failed: {e}")
         
         # Ultimate fallback
         return "Thank you for your message. Based on your symptoms, I recommend consulting with our clinic staff for proper evaluation."
@@ -276,7 +276,7 @@ Respond ONLY with a JSON array in this exact format:
 
 Keep each insight under 100 words. Be culturally sensitive to Filipino students."""
 
-        # Try providers in order: Groq → OpenRouter → Cohere → Gemini
+        # Try providers in order: Groq → Gemini → OpenRouter → Cohere
         insights_text = None
         
         # Try Groq first
@@ -293,7 +293,19 @@ Keep each insight under 100 words. Be culturally sensitive to Filipino students.
             except Exception as e:
                 self.logger.warning(f"Groq insights failed: {e}")
         
-        # Try OpenRouter
+        # Try Gemini second
+        if not insights_text and self.gemini_client:
+            try:
+                response = self.gemini_client.models.generate_content(
+                    model="gemini-2.5-flash-lite",
+                    contents=prompt
+                )
+                insights_text = response.text
+                self.logger.info("Health insights from Gemini")
+            except Exception as e:
+                self.logger.warning(f"Gemini insights failed: {e}")
+        
+        # Try OpenRouter third
         if not insights_text and self.openrouter_api_key:
             try:
                 response = requests.post(
@@ -316,17 +328,16 @@ Keep each insight under 100 words. Be culturally sensitive to Filipino students.
             except Exception as e:
                 self.logger.warning(f"OpenRouter insights failed: {e}")
         
-        # Try Gemini
-        if not insights_text and self.gemini_client:
+        # Try Cohere last
+        if not insights_text and self.cohere_client:
             try:
-                response = self.gemini_client.models.generate_content(
-                    model="gemini-2.5-flash",
-                    contents=prompt
+                response = self.cohere_client.chat(
+                    message=prompt
                 )
                 insights_text = response.text
-                self.logger.info("Health insights from Gemini")
+                self.logger.info("Health insights from Cohere")
             except Exception as e:
-                self.logger.warning(f"Gemini insights failed: {e}")
+                self.logger.warning(f"Cohere insights failed: {e}")
         
         # Parse LLM response into structured insights
         if insights_text:
@@ -485,9 +496,46 @@ Be concise. Focus on medical accuracy."""
                     }
                     
                 except Exception as groq_error:
-                    self.logger.warning(f"Groq validation failed, trying OpenRouter: {groq_error}")
+                    self.logger.warning(f"Groq validation failed, trying Gemini: {groq_error}")
             
-            # Try OpenRouter with Mistral free model
+            # Try Gemini second
+            if self.gemini_client:
+                try:
+                    response = self.gemini_client.models.generate_content(
+                        model="gemini-2.5-flash-lite",
+                        contents=prompt
+                    )
+                    result_text = response.text.strip()
+                    
+                    # Extract JSON from markdown code blocks if present
+                    if '```json' in result_text:
+                        result_text = result_text.split('```json')[1].split('```')[0].strip()
+                    elif '```' in result_text:
+                        result_text = result_text.split('```')[1].split('```')[0].strip()
+                    
+                    # Try to find JSON object in response
+                    if not result_text.startswith('{'):
+                        json_match = re.search(r'\{[\s\S]*?"agrees"[\s\S]*?\}', result_text)
+                        if json_match:
+                            result_text = json_match.group(0)
+                    
+                    # Fix common LLM JSON errors
+                    result_text = self._fix_json_response(result_text)
+                    
+                    result_json = json.loads(result_text)
+                    self.logger.info(f"Gemini validation: agrees={result_json.get('agrees')}")
+                    
+                    return {
+                        'agrees_with_ml': result_json.get('agrees', True),
+                        'confidence_boost': max(-0.15, min(0.15, result_json.get('confidence_adjustment', 0.0))),
+                        'reasoning': result_json.get('reasoning', 'LLM validation completed'),
+                        'alternative_diagnosis': result_json.get('alternative_diagnosis')
+                    }
+                    
+                except Exception as gemini_error:
+                    self.logger.warning(f"Gemini validation failed, trying OpenRouter: {gemini_error}")
+            
+            # Try OpenRouter third
             if self.openrouter_api_key:
                 try:
                     # Prepare payload - json.dumps will properly escape all special characters
@@ -554,7 +602,7 @@ Be concise. Focus on medical accuracy."""
                 except Exception as openrouter_error:
                     self.logger.warning(f"OpenRouter validation failed, trying Cohere: {openrouter_error}")
             
-            # Try Cohere
+            # Try Cohere last
             if self.cohere_client:
                 try:
                     # Cohere doesn't support structured JSON, so use simple text parsing
@@ -580,35 +628,7 @@ Do you agree with this prediction? Answer: yes/no and brief reason."""
                     }
                     
                 except Exception as cohere_error:
-                    self.logger.warning(f"Cohere validation failed, trying Gemini: {cohere_error}")
-            
-            # Try Gemini as last resort (rate limited)
-            # if self.gemini_client:
-            #     try:
-            #         response = self.gemini_client.models.generate_content(
-            #             model="gemini-2.5-flash",
-            #             contents=prompt
-            #         )
-            #         result_text = response.text.strip()
-                    
-            #         # Extract JSON from markdown code blocks if present
-            #         if '```json' in result_text:
-            #             result_text = result_text.split('```json')[1].split('```')[0].strip()
-            #         elif '```' in result_text:
-            #             result_text = result_text.split('```')[1].split('```')[0].strip()
-                    
-            #         result_json = json.loads(result_text)
-            #         self.logger.info(f"Gemini validation (last resort): agrees={result_json.get('agrees')}")
-                    
-            #         return {
-            #             'agrees_with_ml': result_json.get('agrees', True),
-            #             'confidence_boost': max(-0.15, min(0.15, result_json.get('confidence_adjustment', 0.0))),
-            #             'reasoning': result_json.get('reasoning', 'LLM validation completed'),
-            #             'alternative_diagnosis': result_json.get('alternative_diagnosis')
-            #         }
-                    
-            #     except Exception as gemini_error:
-            #         self.logger.warning(f"Gemini validation (last resort) failed: {gemini_error}")
+                    self.logger.error(f"Cohere validation failed: {cohere_error}")
             
             # If all LLMs fail, return neutral validation
             return {
