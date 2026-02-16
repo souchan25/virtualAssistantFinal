@@ -1,0 +1,84 @@
+# CPSU Virtual Health Assistant - Rasa Configuration
+# Optimized for medical symptom recognition and health conversations
+# https://rasa.com/docs/rasa/model-configuration/
+recipe: default.v1
+
+# The assistant project unique identifier
+assistant_id: cpsu_health_assistant
+
+# Configuration for Rasa NLU - Medical Domain Optimized
+# https://rasa.com/docs/rasa/nlu/components/
+language: en
+
+pipeline:
+  # Tokenization - splits text into words
+  - name: WhitespaceTokenizer
+  
+  # Regex patterns for extracting symptom entities
+  - name: RegexFeaturizer
+    case_sensitive: false
+  
+  # Lexical and syntactic features
+  - name: LexicalSyntacticFeaturizer
+  
+  # Word-level features (important for medical terms)
+  - name: CountVectorsFeaturizer
+    analyzer: word
+    min_ngram: 1
+    max_ngram: 2
+  
+  # Character n-gram features (helps with typos and variations)
+  - name: CountVectorsFeaturizer
+    analyzer: char_wb
+    min_ngram: 1
+    max_ngram: 4
+  
+  # Main classifier for intents and entities (medical symptoms)
+  - name: DIETClassifier
+    epochs: 200  # Increased for better medical term recognition
+    constrain_similarities: true
+    entity_recognition: true
+    use_masked_language_model: false
+    BILOU_flag: true  # Better entity boundary detection
+    random_seed: 42
+    learning_rate: 0.001
+  
+  # Map synonyms to canonical symptom names
+  - name: EntitySynonymMapper
+  
+  # Response selector for quick responses
+  - name: ResponseSelector
+    epochs: 100
+    constrain_similarities: true
+    retrieval_intent: chitchat
+  
+  # Fallback when confidence is low
+  - name: FallbackClassifier
+    threshold: 0.6  # Require 60% confidence
+    ambiguity_threshold: 0.1
+
+# Configuration for Rasa Core - Conversation Management
+# https://rasa.com/docs/rasa/core/policies/
+policies:
+  # Remember exact conversation paths
+  - name: MemoizationPolicy
+    max_history: 5
+  
+  # Handle rules (emergency, goodbye, etc.)
+  - name: RulePolicy
+    core_fallback_action_name: action_default_fallback
+    core_fallback_threshold: 0.4
+  
+  # Handle out-of-scope intents
+  - name: UnexpecTEDIntentPolicy
+    max_history: 5
+    epochs: 100
+  
+  # Main dialogue policy
+  - name: TEDPolicy
+    max_history: 5
+    epochs: 200  # Increased for better health conversation handling
+    constrain_similarities: true
+    random_seed: 42
+
+

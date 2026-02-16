@@ -1,0 +1,990 @@
+version: "3.1"
+
+nlu:
+- intent: greet
+  examples: |
+    - hey
+    - hello
+    - hi
+    - hello there
+    - good morning
+    - good evening
+    - hey there
+    - good afternoon
+    - hi doc
+    - hello doctor
+    - greetings
+
+- intent: goodbye
+  examples: |
+    - bye
+    - goodbye
+    - see you later
+    - see you
+    - talk to you later
+    - have a nice day
+    - take care
+    - bye bye
+    - good night
+    - cya
+
+- intent: affirm
+  examples: |
+    - yes
+    - yeah
+    - yep
+    - correct
+    - right
+    - exactly
+    - that's right
+    - yes that's correct
+    - affirmative
+    - sure
+    - absolutely
+    - indeed
+
+- intent: deny
+  examples: |
+    - no
+    - nope
+    - never
+    - not really
+    - that's wrong
+    - incorrect
+    - not at all
+    - no way
+    - I don't think so
+    - negative
+
+- intent: thank
+  examples: |
+    - thank you
+    - thanks
+    - thank you so much
+    - thanks a lot
+    - appreciate it
+    - thanks for your help
+    - thank you for the information
+    - grateful
+
+- intent: report_symptoms
+  examples: |
+    - I have [fever](symptom)
+    - I'm experiencing [headache](symptom) and [nausea](symptom)
+    - I have [cough](symptom) and [fatigue](symptom)
+    - I'm feeling [dizzy](symptom)
+    - I have a [stomach ache](symptom)
+    - I'm suffering from [back pain](symptom)
+    - My symptoms are [fever](symptom), [cough](symptom), and [body pain](symptom)
+    - I have [chest pain](symptom)
+    - I'm experiencing [vomiting](symptom)
+    - I have [diarrhea](symptom)
+    - I feel [weak](symptom)
+    - I have [chills](symptom) and [sweating](symptom)
+    - I'm having [breathing problems](symptom)
+    - I have [skin rash](symptom)
+    - I feel [itching](symptom) all over
+    - I have [joint pain](symptom)
+    - My [throat hurts](symptom)
+    - I have [runny nose](symptom) and [sneezing](symptom)
+    - I'm feeling very [tired](symptom)
+    - I have [abdominal pain](symptom)
+    - I'm experiencing [weight loss](symptom)
+    - I have [loss of appetite](symptom)
+    - I feel [restless](symptom)
+    - I have [muscle pain](symptom)
+    - My [eyes are red](symptom)
+    - I have [blurred vision](symptom)
+    - I'm experiencing [neck pain](symptom)
+    - I have [swelling](symptom) in my legs
+    - I feel [anxious](symptom)
+    - I have [depression](symptom)
+    - I'm experiencing [mood swings](symptom)
+    - I have [high fever](symptom) and [body ache](symptom)
+    - I'm feeling [nauseous](symptom) and have [headache](symptom)
+    - I have [sore throat](symptom) and [cough](symptom)
+    - not feeling well
+    - feeling sick
+    - I'm ill
+    - I don't feel good
+    - something is wrong with me
+    - I need medical help
+
+- intent: ask_diagnosis
+  examples: |
+    - what's wrong with me
+    - what disease do I have
+    - what's my diagnosis
+    - can you diagnose me
+    - what condition do I have
+    - what illness is this
+    - what's causing my symptoms
+    - do you know what I have
+    - can you tell me what's wrong
+    - what sickness do I have
+
+- intent: ask_precautions
+  examples: |
+    - what should I do
+    - how can I treat this
+    - what precautions should I take
+    - how do I manage this
+    - what's the treatment
+    - how can I feel better
+    - what are the recommendations
+    - what should I avoid
+    - how do I take care of myself
+    - what medicine should I take
+
+- intent: emergency
+  examples: |
+    - this is an emergency
+    - I need immediate help
+    - urgent
+    - this is serious
+    - I need a doctor now
+    - emergency
+    - critical condition
+    - help me please
+    - I'm in severe pain
+    - I can't breathe properly
+    - chest pain is severe
+    - I'm losing consciousness
+
+- intent: ask_appointment
+  examples: |
+    - I want to book an appointment
+    - can I see a doctor
+    - I need to visit the clinic
+    - schedule an appointment
+    - when can I come to the clinic
+    - clinic hours
+    - how do I get an appointment
+
+- intent: bot_challenge
+  examples: |
+    - are you a bot
+    - are you human
+    - am I talking to a bot
+    - are you real
+    - who are you
+    - what are you
+
+- synonym: fever
+  examples: |
+    - high temperature
+    - high fever
+    - mild fever
+    - running a fever
+    - feverish
+    - pyrexia
+    - elevated temperature
+    - temperature
+    - hot
+
+- synonym: headache
+  examples: |
+    - head pain
+    - head ache
+    - migraine
+    - head hurts
+    - pain in head
+    - throbbing head
+    - splitting headache
+
+- synonym: cough
+  examples: |
+    - coughing
+    - persistent cough
+    - dry cough
+    - wet cough
+    - hacking cough
+    - coughing up phlegm
+
+- synonym: fatigue
+  examples: |
+    - tired
+    - tiredness
+    - exhausted
+    - exhaustion
+    - weakness
+    - lethargy
+    - feeling weak
+    - low energy
+    - worn out
+    - weary
+
+- synonym: nausea
+  examples: |
+    - feeling sick
+    - nauseous
+    - queasy
+    - sick to stomach
+    - feeling like vomiting
+    - upset stomach
+
+- synonym: vomiting
+  examples: |
+    - throwing up
+    - puking
+    - being sick
+    - emesis
+    - retching
+
+- synonym: diarrhea
+  examples: |
+    - loose stools
+    - watery stool
+    - frequent bowel movements
+    - diarrhoea
+    - running stomach
+    - loose motions
+
+- synonym: abdominal_pain
+  examples: |
+    - stomach pain
+    - stomach ache
+    - belly pain
+    - tummy ache
+    - abdominal cramps
+    - pain in abdomen
+    - stomach cramps
+
+- synonym: chest_pain
+  examples: |
+    - pain in chest
+    - chest discomfort
+    - tight chest
+    - chest pressure
+    - angina
+
+- synonym: back_pain
+  examples: |
+    - backache
+    - pain in back
+    - lower back pain
+    - upper back pain
+    - back hurts
+    - spinal pain
+
+- synonym: joint_pain
+  examples: |
+    - joint ache
+    - arthralgia
+    - painful joints
+    - joints hurt
+    - aching joints
+
+- synonym: muscle_pain
+  examples: |
+    - muscle ache
+    - body ache
+    - body pain
+    - myalgia
+    - sore muscles
+    - muscle soreness
+
+- synonym: dizziness
+  examples: |
+    - dizzy
+    - feeling dizzy
+    - lightheaded
+    - vertigo
+    - spinning sensation
+    - feeling faint
+
+- synonym: breathlessness
+  examples: |
+    - shortness of breath
+    - difficulty breathing
+    - hard to breathe
+    - can't breathe properly
+    - dyspnea
+    - breathing problems
+
+- synonym: skin_rash
+  examples: |
+    - rash
+    - skin eruption
+    - red spots
+    - skin outbreak
+    - bumps on skin
+    - skin irritation
+
+- synonym: itching
+  examples: |
+    - itchy
+    - scratching
+    - pruritus
+    - skin itching
+    - urge to scratch
+
+- synonym: sweating
+  examples: |
+    - perspiring
+    - excessive sweating
+    - night sweats
+    - profuse sweating
+    - diaphoresis
+
+- synonym: chills
+  examples: |
+    - shivering
+    - feeling cold
+    - cold shivers
+    - shaking
+    - rigor
+
+- synonym: throat_irritation
+  examples: |
+    - sore throat
+    - throat pain
+    - painful throat
+    - scratchy throat
+    - throat hurts
+    - pharyngitis
+
+- synonym: runny_nose
+  examples: |
+    - nasal discharge
+    - dripping nose
+    - nose running
+    - rhinorrhea
+
+- synonym: congestion
+  examples: |
+    - stuffy nose
+    - blocked nose
+    - nasal congestion
+    - nose blocked
+
+- synonym: continuous_sneezing
+  examples: |
+    - sneezing
+    - frequent sneezing
+    - sneezes
+    - sternutation
+
+- synonym: weight_loss
+  examples: |
+    - losing weight
+    - weight reduction
+    - unintentional weight loss
+    - getting thinner
+
+- synonym: weight_gain
+  examples: |
+    - gaining weight
+    - putting on weight
+    - weight increase
+    - getting heavier
+
+- synonym: loss_of_appetite
+  examples: |
+    - no appetite
+    - don't feel like eating
+    - not hungry
+    - reduced appetite
+    - anorexia
+
+- synonym: constipation
+  examples: |
+    - difficulty passing stools
+    - hard stools
+    - infrequent bowel movements
+    - can't poop
+
+- synonym: dehydration
+  examples: |
+    - dehydrated
+    - lack of fluids
+    - dry
+    - thirsty
+
+- synonym: anxiety
+  examples: |
+    - anxious
+    - nervous
+    - worried
+    - stressed
+    - panic
+
+- synonym: depression
+  examples: |
+    - depressed
+    - sad
+    - feeling down
+    - low mood
+    - melancholy
+
+- synonym: neck_pain
+  examples: |
+    - stiff neck
+    - neck ache
+    - pain in neck
+    - neck stiffness
+
+- synonym: swollen_legs
+  examples: |
+    - swelling in legs
+    - swollen
+    - leg swelling
+    - puffiness
+    - edema
+    - bloating
+
+- synonym: redness_of_eyes
+  examples: |
+    - red eyes
+    - bloodshot eyes
+    - eye redness
+    - pink eye
+
+- synonym: blurred_and_distorted_vision
+  examples: |
+    - blurred vision
+    - blurry vision
+    - vision problems
+    - can't see clearly
+    - fuzzy vision
+    - visual disturbances
+
+- synonym: yellowing_of_eyes
+  examples: |
+    - yellow eyes
+    - jaundice eyes
+    - eyes turned yellow
+    - icterus
+
+- synonym: yellowish_skin
+  examples: |
+    - yellow skin
+    - jaundice
+    - skin turned yellow
+
+- synonym: dark_urine
+  examples: |
+    - brown urine
+    - tea-colored urine
+    - dark colored urine
+
+- synonym: bloody_stool
+  examples: |
+    - blood in stool
+    - rectal bleeding
+    - stool with blood
+    - hematochezia
+
+- synonym: palpitations
+  examples: |
+    - heart racing
+    - fast heartbeat
+    - irregular heartbeat
+    - heart pounding
+    - rapid pulse
+    - fast heart rate
+
+- synonym: blackheads
+  examples: |
+    - comedones
+    - clogged pores
+    - black spots on skin
+
+- synonym: acidity
+  examples: |
+    - acid reflux
+    - heartburn
+    - sour stomach
+    - GERD
+
+- synonym: indigestion
+  examples: |
+    - upset stomach
+    - dyspepsia
+    - poor digestion
+    - stomach discomfort
+
+- synonym: restlessness
+  examples: |
+    - can't stay still
+    - restless
+    - agitated
+    - fidgety
+
+- synonym: malaise
+  examples: |
+    - general discomfort
+    - unwell
+    - feeling unwell
+    - overall sickness
+
+- synonym: phlegm
+  examples: |
+    - mucus
+    - sputum
+    - mucoid sputum
+    - rusty sputum
+
+- synonym: obesity
+  examples: |
+    - overweight
+    - very heavy
+    - obese
+    - excessive weight
+
+- synonym: mood_swings
+  examples: |
+    - emotional changes
+    - mood changes
+    - unstable mood
+
+- synonym: cramps
+  examples: |
+    - muscle cramps
+    - cramping
+    - spasms
+
+- synonym: bruising
+  examples: |
+    - bruises
+    - black and blue marks
+    - contusions
+
+- synonym: ulcers_on_tongue
+  examples: |
+    - tongue ulcers
+    - mouth sores
+    - canker sores
+    - tongue sores
+
+- synonym: burning_micturition
+  examples: |
+    - painful urination
+    - burning while peeing
+    - burning sensation when urinating
+
+- synonym: polyuria
+  examples: |
+    - frequent urination
+    - excessive urination
+    - urinating a lot
+    - increased appetite
+
+- synonym: muscle_weakness
+  examples: |
+    - weak muscles
+    - muscle fatigue
+    - weakness in limbs
+
+- synonym: stiff_neck
+  examples: |
+    - neck stiffness
+    - rigid neck
+    - can't move neck
+
+- synonym: swelling_joints
+  examples: |
+    - swollen joints
+    - joint swelling
+    - puffy joints
+
+- synonym: loss_of_balance
+  examples: |
+    - balance problems
+    - unsteadiness
+    - wobbly
+    - can't balance
+
+- synonym: loss_of_smell
+  examples: |
+    - can't smell
+    - no sense of smell
+    - anosmia
+
+- synonym: bladder_discomfort
+  examples: |
+    - bladder pain
+    - uncomfortable bladder
+    - bladder pressure
+
+- synonym: irritability
+  examples: |
+    - irritable
+    - easily annoyed
+    - short tempered
+
+- synonym: altered_sensorium
+  examples: |
+    - confusion
+    - disoriented
+    - mental confusion
+
+- synonym: red_spots_over_body
+  examples: |
+    - red spots
+    - rash all over
+    - spots on body
+
+- synonym: abnormal_menstruation
+  examples: |
+    - irregular periods
+    - abnormal periods
+    - menstrual problems
+
+- synonym: watering_from_eyes
+  examples: |
+    - teary eyes
+    - watery eyes
+    - eyes watering
+
+- synonym: increased_appetite
+  examples: |
+    - always hungry
+    - excessive hunger
+    - eating a lot
+
+- synonym: lack_of_concentration
+  examples: |
+    - can't focus
+    - poor concentration
+    - difficulty concentrating
+
+- synonym: coma
+  examples: |
+    - unconscious
+    - passed out
+    - not responsive
+
+- synonym: stomach_bleeding
+  examples: |
+    - internal bleeding
+    - bleeding in stomach
+    - GI bleeding
+
+- synonym: distention_of_abdomen
+  examples: |
+    - bloated stomach
+    - swollen abdomen
+    - distended belly
+
+- synonym: painful_walking
+  examples: |
+    - pain while walking
+    - difficulty walking
+    - limping
+
+- synonym: pus_filled_pimples
+  examples: |
+    - pimples with pus
+    - pustules
+    - acne
+    - whiteheads
+
+- synonym: skin_peeling
+  examples: |
+    - peeling skin
+    - flaking skin
+    - skin shedding
+
+- synonym: blister
+  examples: |
+    - blisters
+    - fluid-filled bumps
+    - water blisters
+
+- synonym: nodal_skin_eruptions
+  examples: |
+    - skin nodules
+    - bumps under skin
+    - skin lumps
+
+- synonym: muscle_wasting
+  examples: |
+    - muscle loss
+    - muscle atrophy
+    - wasting muscles
+
+- synonym: patches_in_throat
+  examples: |
+    - white patches in throat
+    - throat patches
+    - spots in throat
+
+- synonym: irregular_sugar_level
+  examples: |
+    - blood sugar issues
+    - glucose problems
+    - unstable sugar
+
+- synonym: sunken_eyes
+  examples: |
+    - hollow eyes
+    - deep-set eyes
+    - eyes looking sunken
+
+- synonym: pain_behind_the_eyes
+  examples: |
+    - eye pain
+    - pain in back of eyes
+    - retro-orbital pain
+
+- synonym: weakness_in_limbs
+  examples: |
+    - weak arms and legs
+    - limb weakness
+    - arm weakness
+    - leg weakness
+
+- synonym: fast_heart_rate
+  examples: |
+    - rapid heartbeat
+    - tachycardia
+    - racing heart
+    - palpitations
+
+- synonym: pain_during_bowel_movements
+  examples: |
+    - pain when pooping
+    - painful defecation
+    - bowel movement pain
+
+- synonym: pain_in_anal_region
+  examples: |
+    - anal pain
+    - rectal pain
+    - pain in anus
+
+- synonym: irritation_in_anus
+  examples: |
+    - anal irritation
+    - itchy anus
+    - rectal irritation
+
+- synonym: swollen_blood_vessels
+  examples: |
+    - varicose veins
+    - bulging veins
+    - prominent veins
+
+- synonym: puffy_face_and_eyes
+  examples: |
+    - swollen face
+    - puffy eyes
+    - facial swelling
+
+- synonym: enlarged_thyroid
+  examples: |
+    - goiter
+    - thyroid swelling
+    - swollen thyroid
+
+- synonym: brittle_nails
+  examples: |
+    - weak nails
+    - breaking nails
+    - fragile nails
+
+- synonym: swollen_extremeties
+  examples: |
+    - swollen hands and feet
+    - extremity swelling
+
+- synonym: excessive_hunger
+  examples: |
+    - always hungry
+    - increased hunger
+    - polyphagia
+
+- synonym: drying_and_tingling_lips
+  examples: |
+    - dry lips
+    - tingling lips
+    - chapped lips
+
+- synonym: slurred_speech
+  examples: |
+    - speech problems
+    - difficulty speaking
+    - unclear speech
+
+- synonym: knee_pain
+  examples: |
+    - knee ache
+    - pain in knee
+    - knee hurts
+
+- synonym: hip_joint_pain
+  examples: |
+    - hip pain
+    - pain in hip
+    - hip ache
+
+- synonym: movement_stiffness
+  examples: |
+    - stiff movements
+    - difficulty moving
+    - rigid joints
+
+- synonym: spinning_movements
+  examples: |
+    - spinning sensation
+    - room spinning
+    - vertigo
+
+- synonym: weakness_of_one_body_side
+  examples: |
+    - one-sided weakness
+    - hemiparesis
+    - weak on one side
+
+- synonym: continuous_feel_of_urine
+  examples: |
+    - constant urge to urinate
+    - always need to pee
+    - urinary urgency
+
+- synonym: passage_of_gases
+  examples: |
+    - flatulence
+    - gas
+    - passing gas
+    - farting
+
+- synonym: internal_itching
+  examples: |
+    - itching inside
+    - internal pruritus
+
+- synonym: toxic_look_(typhos)
+  examples: |
+    - toxic appearance
+    - looking very ill
+    - typhoid look
+
+- synonym: dischromic _patches
+  examples: |
+    - discolored patches
+    - skin discoloration
+    - patches on skin
+
+- synonym: family_history
+  examples: |
+    - runs in family
+    - genetic history
+    - family medical history
+
+- synonym: receiving_blood_transfusion
+  examples: |
+    - blood transfusion
+    - received blood
+    - transfusion history
+
+- synonym: receiving_unsterile_injections
+  examples: |
+    - unsterile injection
+    - contaminated injection
+    - unsafe injection
+
+- synonym: history_of_alcohol_consumption
+  examples: |
+    - alcohol use
+    - drinking history
+    - alcoholic
+
+- synonym: blood_in_sputum
+  examples: |
+    - coughing up blood
+    - hemoptysis
+    - bloody phlegm
+
+- synonym: prominent_veins_on_calf
+  examples: |
+    - visible veins on calf
+    - bulging calf veins
+
+- synonym: scurring
+  examples: |
+    - scarring
+    - scars
+    - skin scars
+
+- synonym: silver_like_dusting
+  examples: |
+    - silvery scales
+    - silver dusting on skin
+
+- synonym: small_dents_in_nails
+  examples: |
+    - nail pitting
+    - pitted nails
+    - dents in nails
+
+- synonym: inflammatory_nails
+  examples: |
+    - inflamed nails
+    - nail inflammation
+
+- synonym: red_sore_around_nose
+  examples: |
+    - sore around nose
+    - red nose sore
+    - nose lesion
+
+- synonym: yellow_crust_ooze
+  examples: |
+    - yellow discharge
+    - crusty discharge
+    - oozing sores
+
+- synonym: acute_liver_failure
+  examples: |
+    - liver failure
+    - liver damage
+
+- synonym: fluid_overload
+  examples: |
+    - excess fluid
+    - fluid retention
+    - edema
+
+- synonym: swelling_of_stomach
+  examples: |
+    - swollen stomach
+    - abdominal swelling
+    - distended abdomen
+
+- synonym: swelled_lymph_nodes
+  examples: |
+    - swollen lymph nodes
+    - enlarged lymph nodes
+    - swollen glands
+
+- synonym: sinus_pressure
+  examples: |
+    - sinus pain
+    - pressure in sinuses
+    - sinus headache
+
+- synonym: cold_hands_and_feets
+  examples: |
+    - cold hands
+    - cold feet
+    - cold extremities
+
+- synonym: spotting_ urination
+  examples: |
+    - spotting while urinating
+    - blood spots in urine
+
+- synonym: yellow_urine
+  examples: |
+    - dark yellow urine
+    - concentrated urine
+
+- synonym: belly_pain
+  examples: |
+    - stomach pain
+    - abdominal pain
+    - tummy pain
+
+

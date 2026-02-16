@@ -1,0 +1,8 @@
+# Rasa dependencies for CPSU Virtual Health Assistant
+rasa-sdk
+
+# Additional dependencies
+requests
+
+# Optional: For better performance
+ujson

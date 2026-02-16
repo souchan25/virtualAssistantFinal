@@ -1,0 +1,109 @@
+version: "3.1"
+
+stories:
+
+- story: symptom reporting flow
+  steps:
+  - intent: greet
+  - action: utter_greet
+  - intent: report_symptoms
+  - action: action_extract_symptoms
+  - action: utter_ask_more_symptoms
+  - intent: deny
+  - action: action_predict_disease
+  - intent: thank
+  - action: utter_thank
+
+- story: direct symptom report with confirmation
+  steps:
+  - intent: report_symptoms
+  - action: action_extract_symptoms
+  - action: utter_ask_more_symptoms
+  - intent: deny
+  - action: action_predict_disease
+
+- story: direct symptom report with affirmation
+  steps:
+  - intent: report_symptoms
+  - action: action_extract_symptoms
+  - action: utter_ask_more_symptoms
+  - intent: affirm
+  - action: action_predict_disease
+
+- story: multiple symptom collection
+  steps:
+  - intent: greet
+  - action: utter_greet
+  - intent: report_symptoms
+  - action: action_extract_symptoms
+  - action: utter_ask_more_symptoms
+  - intent: report_symptoms
+  - action: action_extract_symptoms
+  - action: utter_confirm_symptoms
+  - intent: affirm
+  - action: action_predict_disease
+
+- story: emergency situation
+  steps:
+  - intent: emergency
+  - action: utter_emergency
+  - action: action_check_emergency
+
+- story: ask for diagnosis first
+  steps:
+  - intent: ask_diagnosis
+  - action: utter_ask_symptoms
+  - intent: report_symptoms
+  - action: action_extract_symptoms
+  - action: action_predict_disease
+
+- story: precautions inquiry
+  steps:
+  - intent: report_symptoms
+  - action: action_extract_symptoms
+  - action: action_predict_disease
+  - intent: ask_precautions
+  - action: action_provide_precautions
+
+- story: appointment request
+  steps:
+  - intent: ask_appointment
+  - action: utter_appointment_info
+
+- story: bot challenge
+  steps:
+  - intent: bot_challenge
+  - action: utter_iamabot
+
+- story: simple greeting and goodbye
+  steps:
+  - intent: greet
+  - action: utter_greet
+  - intent: goodbye
+  - action: utter_goodbye
+
+- story: symptom correction flow
+  steps:
+  - intent: report_symptoms
+  - action: action_extract_symptoms
+  - action: utter_confirm_symptoms
+  - intent: deny
+  - action: utter_ask_symptoms
+  - intent: report_symptoms
+  - action: action_extract_symptoms
+  - action: action_predict_disease
+
+- story: incomplete symptom report
+  steps:
+  - intent: greet
+  - action: utter_greet
+  - action: utter_ask_symptoms
+  - intent: report_symptoms
+  - action: action_extract_symptoms
+  - action: utter_ask_more_symptoms
+  - intent: affirm
+  - intent: report_symptoms
+  - action: action_extract_symptoms
+  - action: action_predict_disease
+
+

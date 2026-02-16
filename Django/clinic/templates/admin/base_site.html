@@ -1,0 +1,203 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <style>
+        :root {
+            --cpsu-green: #006B3F;
+            --cpsu-green-dark: #004d2d;
+            --cpsu-yellow: #FFF44F;
+            --cpsu-yellow-dark: #e6db3d;
+        }
+        
+        /* Django Admin Branding */
+        #header {
+            background: linear-gradient(135deg, var(--cpsu-green) 0%, var(--cpsu-green-dark) 100%) !important;
+            border-bottom: 3px solid var(--cpsu-yellow) !important;
+        }
+        
+        #header h1, #header a:link, #header a:visited {
+            color: white !important;
+        }
+        
+        #header h1 {
+            font-weight: 700 !important;
+            letter-spacing: 0.5px;
+        }
+        
+        .admin-header {
+            background: linear-gradient(135deg, var(--cpsu-green) 0%, var(--cpsu-green-dark) 100%);
+            border-bottom: 3px solid var(--cpsu-yellow);
+            padding: 20px;
+            color: white;
+        }
+        
+        /* Admin branding text */
+        #header:after {
+            content: "CPSU Virtual Health Assistant";
+            color: var(--cpsu-yellow);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            display: block;
+            margin-top: 5px;
+        }
+        
+        /* Navigation Styling */
+        #user-tools {
+            background: var(--cpsu-green) !important;
+            border-bottom: 2px solid var(--cpsu-yellow) !important;
+        }
+        
+        #user-tools a {
+            color: white !important;
+        }
+        
+        #user-tools a:hover {
+            background: var(--cpsu-green-dark) !important;
+            color: var(--cpsu-yellow) !important;
+        }
+        
+        /* Sidebar Navigation */
+        .module h2 {
+            background: var(--cpsu-green) !important;
+            border-bottom: 2px solid var(--cpsu-yellow) !important;
+            color: white !important;
+        }
+        
+        .module li a {
+            color: var(--cpsu-green) !important;
+        }
+        
+        .module li a:focus,
+        .module li a:hover {
+            background: rgba(0, 107, 63, 0.1) !important;
+            color: var(--cpsu-green-dark) !important;
+            border-left: 3px solid var(--cpsu-yellow) !important;
+        }
+        
+        /* Buttons */
+        .button, input[type="submit"], input[type="button"], .submit-row input {
+            background: var(--cpsu-green) !important;
+            border: none !important;
+            color: white !important;
+        }
+        
+        .button:hover, input[type="submit"]:hover, input[type="button"]:hover {
+            background: var(--cpsu-green-dark) !important;
+            box-shadow: 0 2px 8px rgba(0, 107, 63, 0.3);
+        }
+        
+        .button.default, input[type="submit"].default {
+            background: var(--cpsu-green) !important;
+        }
+        
+        .button.default:hover, input[type="submit"].default:hover {
+            background: var(--cpsu-green-dark) !important;
+        }
+        
+        .deletelink-box a.deletelink {
+            background: #dc3545 !important;
+        }
+        
+        .deletelink-box a.deletelink:hover {
+            background: #c82333 !important;
+        }
+        
+        /* Links and Focus */
+        a {
+            color: var(--cpsu-green) !important;
+        }
+        
+        a:hover {
+            color: var(--cpsu-green-dark) !important;
+        }
+        
+        /* Form styling */
+        fieldset {
+            border: 1px solid #e0e0e0 !important;
+            border-radius: 8px !important;
+        }
+        
+        fieldset legend {
+            color: var(--cpsu-green) !important;
+            font-weight: 700 !important;
+        }
+        
+        /* Table styling */
+        table {
+            border-collapse: collapse;
+        }
+        
+        thead {
+            background: rgba(0, 107, 63, 0.05) !important;
+            border-bottom: 2px solid var(--cpsu-green) !important;
+        }
+        
+        th {
+            color: var(--cpsu-green) !important;
+            font-weight: 700 !important;
+        }
+        
+        tbody tr:hover {
+            background: rgba(0, 107, 63, 0.03) !important;
+        }
+        
+        /* Pagination */
+        .paginator a, .paginator span.step-links {
+            color: var(--cpsu-green) !important;
+        }
+        
+        .paginator a:hover {
+            background: rgba(0, 107, 63, 0.1) !important;
+        }
+        
+        .paginator .this-page {
+            background: var(--cpsu-yellow) !important;
+            color: var(--cpsu-green) !important;
+            font-weight: 700 !important;
+        }
+        
+        /* Messages */
+        .success {
+            background: #d4edda !important;
+            border: 1px solid #c3e6cb !important;
+            color: #155724 !important;
+        }
+        
+        .warning {
+            background: #fff3cd !important;
+            border: 1px solid #ffeaa7 !important;
+            color: #856404 !important;
+        }
+        
+        .error {
+            background: #f8d7da !important;
+            border: 1px solid #f5c6cb !important;
+            color: #721c24 !important;
+        }
+        
+        /* Form input focus */
+        input[type="text"]:focus,
+        input[type="password"]:focus,
+        input[type="email"]:focus,
+        textarea:focus,
+        select:focus {
+            border-color: var(--cpsu-green) !important;
+            box-shadow: 0 0 0 2px rgba(0, 107, 63, 0.2) !important;
+        }
+        
+        /* Admin change list */
+        .results {
+            border: 1px solid #e0e0e0 !important;
+            border-radius: 8px !important;
+            overflow: hidden;
+        }
+        
+        /* Breadcrumbs */
+        .breadcrumbs a {
+            color: var(--cpsu-green) !important;
+        }
+    </style>
+{% endblock %}

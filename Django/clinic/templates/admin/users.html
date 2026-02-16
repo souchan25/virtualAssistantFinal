@@ -1,0 +1,377 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}User Management - {{ site_title }}{% endblock %}
+
+<style>
+    :root {
+        --cpsu-green: #006B3F;
+        --cpsu-yellow: #FFF44F;
+        --text-dark: #2c3e50;
+        --text-light: #6c757d;
+        --border-light: #e0e0e0;
+        --bg-light: #f8f9fa;
+    }
+    
+    .admin-container {
+        padding: 20px;
+        background: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%);
+    }
+    
+    .admin-header {
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 3px solid var(--cpsu-yellow);
+    }
+    
+    .admin-header h1 {
+        color: var(--cpsu-green);
+        margin: 0;
+        font-size: 28px;
+        font-weight: 700;
+    }
+    
+    .nav-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 30px;
+        border-bottom: 2px solid var(--border-light);
+        flex-wrap: wrap;
+    }
+    
+    .nav-tab {
+        padding: 12px 20px;
+        text-decoration: none;
+        color: var(--text-dark);
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+    
+    .nav-tab:hover {
+        color: var(--cpsu-green);
+        border-bottom-color: var(--cpsu-yellow);
+    }
+    
+    .nav-tab.active {
+        color: var(--cpsu-green);
+        border-bottom-color: var(--cpsu-yellow);
+    }
+    
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border-left: 4px solid var(--cpsu-green);
+        transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        transform: translateY(-2px);
+    }
+    
+    .stat-label {
+        font-size: 13px;
+        color: var(--text-light);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+    }
+    
+    .stat-value {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--cpsu-green);
+        margin-bottom: 5px;
+    }
+    
+    .card {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        margin-bottom: 25px;
+    }
+    
+    .card-title {
+        color: var(--cpsu-green);
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid var(--border-light);
+    }
+    
+    .table-container {
+        overflow-x: auto;
+        border-radius: 8px;
+    }
+    
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    thead {
+        background: var(--bg-light);
+        border-bottom: 2px solid var(--cpsu-green);
+    }
+    
+    th {
+        padding: 15px;
+        text-align: left;
+        font-weight: 700;
+        color: var(--cpsu-green);
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    td {
+        padding: 12px 15px;
+        border-bottom: 1px solid var(--border-light);
+        font-size: 13px;
+    }
+    
+    tbody tr:hover {
+        background-color: rgba(0, 107, 63, 0.02);
+    }
+    
+    .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    
+    .badge-student {
+        background: #e7f3ff;
+        color: #0050b3;
+    }
+    
+    .badge-staff {
+        background: #f6ffed;
+        color: #135200;
+    }
+    
+    .badge-active {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .role-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+    }
+    
+    .role-item {
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid var(--cpsu-yellow);
+        background: rgba(255, 244, 79, 0.05);
+        text-align: center;
+    }
+    
+    .role-count {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--cpsu-green);
+        margin-bottom: 5px;
+    }
+    
+    .role-name {
+        font-size: 12px;
+        color: var(--text-light);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+</style>
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>👥 User Management Dashboard</h1>
+    </div>
+    
+    <div class="nav-tabs">
+        <a href="{% url 'clinic:admin-monitoring' %}" class="nav-tab">Overview</a>
+        <a href="#" class="nav-tab active">Users</a>
+        <a href="{% url 'clinic:admin-health' %}" class="nav-tab">Health Records</a>
+        <a href="{% url 'clinic:admin-analytics' %}" class="nav-tab">API Analytics</a>
+        <a href="{% url 'clinic:admin-settings' %}" class="nav-tab">Settings</a>
+    </div>
+    
+    <!-- User Statistics Overview -->
+    <div class="card">
+        <div class="card-title">📊 User Statistics Overview</div>
+        <div class="dashboard-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Users</div>
+                <div class="stat-value">{{ total_users }}</div>
+                <div style="font-size: 12px; color: var(--text-light);">All active accounts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Student Users</div>
+                <div class="stat-value" style="color: #0050b3;">{{ student_count }}</div>
+                <div style="font-size: 12px; color: var(--text-light);">Student accounts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Staff Users</div>
+                <div class="stat-value" style="color: #135200;">{{ staff_count }}</div>
+                <div style="font-size: 12px; color: var(--text-light);">Admin accounts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Active (30 days)</div>
+                <div class="stat-value" style="color: #28a745;">{{ active_users_count }}</div>
+                <div style="font-size: 12px; color: var(--text-light);">Recent activity</div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 25px;">
+            <h3 style="color: var(--cpsu-green); margin-bottom: 15px; font-size: 16px;">Role Distribution</h3>
+            <div class="role-grid">
+                {% for role in role_stats %}
+                <div class="role-item">
+                    <div class="role-count">{{ role.count }}</div>
+                    <div class="role-name">
+                        {% if role.role == 'student' %}👨‍🎓 Students{% elif role.role == 'clinic_staff' %}👨‍⚕️ Staff{% else %}{{ role.role|title }}{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Users -->
+    <div class="card">
+        <div class="card-title">🆕 Recent Users (Last 20)</div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>School ID</th>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Joined</th>
+                        <th>Email</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in recent_users %}
+                    <tr>
+                        <td><strong>{{ user.school_id }}</strong></td>
+                        <td>{{ user.name }}</td>
+                        <td>
+                            {% if user.role == 'student' %}
+                                <span class="badge badge-student">👨‍🎓 Student</span>
+                            {% elif user.role == 'clinic_staff' %}
+                                <span class="badge badge-staff">👨‍⚕️ Staff</span>
+                            {% else %}
+                                <span class="badge">{{ user.role|title }}</span>
+                            {% endif %}
+                        </td>
+                        <td><code style="font-size: 11px;">{{ user.date_joined|date:"M d, y" }}</code></td>
+                        <td>{{ user.email|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: var(--text-light); padding: 20px;">
+                            No users found
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- User Activity (Last 30 days) -->
+    {% if user_activity %}
+    <div class="card">
+        <div class="card-title">📈 Most Active Users (Last 30 Days)</div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>School ID</th>
+                        <th>Activity Count</th>
+                        <th>Rank</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for idx, activity in user_activity|dictsort:"activity_count" reversed %}
+                    <tr>
+                        <td>
+                            {% if activity.user %}
+                                <strong>{{ activity.user.name }}</strong>
+                            {% else %}
+                                <em>Unknown User</em>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if activity.user %}
+                                <code style="font-size: 11px;">{{ activity.user.school_id }}</code>
+                            {% else %}
+                                <code style="font-size: 11px;">-</code>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span style="background: rgba(0, 107, 63, 0.1); color: var(--cpsu-green); padding: 5px 10px; border-radius: 20px; font-weight: 600;">
+                                {{ activity.activity_count }}
+                            </span>
+                        </td>
+                        <td>
+                            <span style="background: var(--cpsu-yellow); color: var(--cpsu-green); padding: 5px 10px; border-radius: 20px; font-weight: 700;">
+                                #{{ forloop.counter }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Quick Actions -->
+    <div class="card">
+        <div class="card-title">⚡ User Management Actions</div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
+            <a href="{% url 'admin:clinic_customuser_changelist' %}" style="padding: 15px; border: 2px solid var(--cpsu-green); border-radius: 8px; text-decoration: none; color: var(--cpsu-green); text-align: center; font-weight: 600; transition: all 0.3s; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">👥</span>
+                View All Users
+            </a>
+            <a href="{% url 'admin:clinic_customuser_add' %}" style="padding: 15px; border: 2px solid var(--cpsu-yellow); border-radius: 8px; text-decoration: none; color: #856404; text-align: center; font-weight: 600; transition: all 0.3s; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">➕</span>
+                Create User
+            </a>
+            <a href="{% url 'admin:clinic_customuser_changelist' %}?role__exact=clinic_staff" style="padding: 15px; border: 2px solid #135200; border-radius: 8px; text-decoration: none; color: #135200; text-align: center; font-weight: 600; transition: all 0.3s; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">👨‍⚕️</span>
+                Staff Only
+            </a>
+            <a href="{% url 'admin:clinic_customuser_changelist' %}?role__exact=student" style="padding: 15px; border: 2px solid #0050b3; border-radius: 8px; text-decoration: none; color: #0050b3; text-align: center; font-weight: 600; transition: all 0.3s; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">👨‍🎓</span>
+                Students Only
+            </a>
+        </div>
+    </div>
+    
+    <div style="text-align: right; color: var(--text-light); font-size: 12px; margin-top: 20px;">
+        Last updated: {{ last_updated|date:"M d, Y H:i:s" }}
+    </div>
+</div>
+{% endblock %}

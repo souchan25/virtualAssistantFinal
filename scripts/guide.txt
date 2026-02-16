@@ -1,0 +1,6 @@
+./scripts/rasa.sh action   # Start action server (5055)
+./scripts/rasa.sh main     # Start main server (5005)
+./scripts/rasa.sh train    # Train new model
+./scripts/rasa.sh shell    # Test chat interactively
+./scripts/rasa.sh status   # Check what's running
+./scripts/rasa.sh all      # Start both servers

@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+  }
+}
+
+@layer components {
+  /* CPSU Branded Buttons */
+  .btn-primary {
+    @apply bg-cpsu-green text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-cpsu-green-dark transition-colors duration-200 shadow-sm;
+  }
+  
+  .btn-secondary {
+    @apply bg-cpsu-yellow text-cpsu-green font-semibold px-6 py-2.5 rounded-lg hover:bg-cpsu-yellow-dark transition-colors duration-200 shadow-sm;
+  }
+  
+  .btn-outline {
+    @apply border-2 border-cpsu-green text-cpsu-green font-semibold px-6 py-2.5 rounded-lg hover:bg-cpsu-green hover:text-white transition-colors duration-200;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-white rounded-lg shadow-md p-6;
+  }
+
+  .card-bordered {
+    @apply bg-white rounded-lg border-2 border-cpsu-green shadow-lg p-6;
+  }
+
+  /* Form Inputs */
+  .input-field {
+    @apply w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cpsu-green focus:border-transparent transition-all;
+  }
+
+  .input-error {
+    @apply border-red-500 focus:ring-red-500;
+  }
+
+  /* Loading States */
+  .spinner {
+    @apply animate-spin rounded-full border-4 border-gray-200 border-t-cpsu-green;
+  }
+}

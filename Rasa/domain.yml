@@ -1,0 +1,98 @@
+version: "3.1"
+
+intents:
+  - greet
+  - goodbye
+  - affirm
+  - deny
+  - report_symptoms
+  - ask_diagnosis
+  - ask_precautions
+  - emergency
+  - ask_appointment
+  - thank
+  - bot_challenge
+
+entities:
+  - symptom
+
+slots:
+  symptoms:
+    type: list
+    influence_conversation: true
+    mappings:
+    - type: custom
+  
+  diagnosis:
+    type: text
+    influence_conversation: false
+    mappings:
+    - type: custom
+  
+  confidence:
+    type: float
+    influence_conversation: false
+    mappings:
+    - type: custom
+
+responses:
+  utter_greet:
+  - text: "Hello! I'm the CPSU Virtual Health Assistant. How can I help you today?"
+  - text: "Hi there! I'm here to help with your health concerns. What symptoms are you experiencing?"
+  - text: "Welcome to CPSU Health Services! Please tell me what symptoms you're having."
+
+  utter_ask_symptoms:
+  - text: "What symptoms are you experiencing? Please describe them."
+  - text: "Can you tell me about your symptoms?"
+  - text: "What brings you here today? Please list your symptoms."
+
+  utter_confirm_symptoms:
+  - text: "Let me confirm - you're experiencing: {symptoms}. Is that correct?"
+  - text: "I've noted these symptoms: {symptoms}. Did I get that right?"
+
+  utter_analyzing:
+  - text: "Thank you. Let me analyze your symptoms..."
+  - text: "I'm checking your symptoms against our medical database..."
+  - text: "Analyzing your condition, please wait a moment..."
+
+  utter_diagnosis:
+  - text: "Based on your symptoms, you might have {diagnosis} (confidence: {confidence}%).\n\nPlease note this is an AI assessment. For proper diagnosis, please visit the clinic."
+
+  utter_ask_more_symptoms:
+  - text: "Are there any other symptoms you're experiencing?"
+  - text: "Do you have any other symptoms to report?"
+
+  utter_emergency:
+  - text: "⚠️ Your symptoms may require immediate medical attention! Please visit the CPSU clinic immediately or call emergency services."
+  - text: "⚠️ EMERGENCY: Please seek immediate medical care at the clinic or nearest hospital!"
+
+  utter_precautions:
+  - text: "Here are some precautions you should take:\n{precautions}"
+
+  utter_thank:
+  - text: "You're welcome! Take care and feel better soon!"
+  - text: "Glad I could help! Please visit the clinic if symptoms persist."
+  - text: "You're welcome! Remember to rest and stay hydrated."
+
+  utter_goodbye:
+  - text: "Take care! If you need anything else, I'm here to help."
+  - text: "Goodbye! Wishing you good health. Visit the clinic if needed."
+
+  utter_appointment_info:
+  - text: "To schedule an appointment with CPSU Health Services, please visit the clinic during office hours (Monday-Friday, 8:00 AM - 5:00 PM) or call the clinic office. You can also register through the student portal."
+
+  utter_iamabot:
+  - text: "I am the CPSU Virtual Health Assistant, powered by AI and machine learning. I can help assess your symptoms, but I'm not a replacement for professional medical care."
+
+  utter_default:
+  - text: "I'm sorry, I didn't quite understand that. Could you rephrase? I can help you with symptom reporting and health concerns."
+
+actions:
+  - action_predict_disease
+  - action_extract_symptoms
+  - action_provide_precautions
+  - action_check_emergency
+
+session_config:
+  session_expiration_time: 1800  # 30 minutes
+  carry_over_slots_to_new_session: false

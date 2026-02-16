@@ -1,0 +1,402 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Settings - {{ site_title }}{% endblock %}
+
+<style>
+    :root {
+        --cpsu-green: #006B3F;
+        --cpsu-yellow: #FFF44F;
+        --text-dark: #2c3e50;
+        --text-light: #6c757d;
+        --border-light: #e0e0e0;
+        --bg-light: #f8f9fa;
+    }
+    
+    .admin-container {
+        padding: 20px;
+        background: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%);
+    }
+    
+    .admin-header {
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 3px solid var(--cpsu-yellow);
+    }
+    
+    .admin-header h1 {
+        color: var(--cpsu-green);
+        margin: 0;
+        font-size: 28px;
+        font-weight: 700;
+    }
+    
+    .nav-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 30px;
+        border-bottom: 2px solid var(--border-light);
+        flex-wrap: wrap;
+    }
+    
+    .nav-tab {
+        padding: 12px 20px;
+        text-decoration: none;
+        color: var(--text-dark);
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+    
+    .nav-tab:hover {
+        color: var(--cpsu-green);
+        border-bottom-color: var(--cpsu-yellow);
+    }
+    
+    .nav-tab.active {
+        color: var(--cpsu-green);
+        border-bottom-color: var(--cpsu-yellow);
+    }
+    
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border-left: 4px solid var(--cpsu-green);
+        transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        transform: translateY(-2px);
+    }
+    
+    .stat-label {
+        font-size: 13px;
+        color: var(--text-light);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+    }
+    
+    .stat-value {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--cpsu-green);
+        margin-bottom: 5px;
+    }
+    
+    .card {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        margin-bottom: 25px;
+    }
+    
+    .card-title {
+        color: var(--cpsu-green);
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid var(--border-light);
+    }
+    
+    .setting-item {
+        padding: 15px;
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .setting-label {
+        flex: 1;
+    }
+    
+    .setting-name {
+        font-weight: 700;
+        color: var(--text-dark);
+        margin-bottom: 3px;
+    }
+    
+    .setting-description {
+        font-size: 12px;
+        color: var(--text-light);
+    }
+    
+    .setting-status {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    
+    .status-enabled {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-disabled {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .provider-grid {
+        display: grid;
+        gap: 12px;
+    }
+    
+    .provider-item {
+        padding: 15px;
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .provider-info {
+        flex: 1;
+    }
+    
+    .provider-name {
+        font-weight: 700;
+        color: var(--text-dark);
+        margin-bottom: 3px;
+    }
+    
+    .provider-tier {
+        font-size: 12px;
+        color: var(--text-light);
+    }
+    
+    .database-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    
+    .database-stat {
+        padding: 20px;
+        background: var(--bg-light);
+        border-radius: 8px;
+        border-left: 4px solid var(--cpsu-yellow);
+    }
+    
+    .database-count {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--cpsu-green);
+        margin-bottom: 5px;
+    }
+    
+    .database-label {
+        font-size: 12px;
+        color: var(--text-light);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    
+    .badge-success {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .badge-danger {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .info-box {
+        padding: 15px;
+        background: linear-gradient(135deg, rgba(0, 107, 63, 0.05) 0%, rgba(255, 244, 79, 0.05) 100%);
+        border-left: 4px solid var(--cpsu-yellow);
+        border-radius: 8px;
+        margin-top: 20px;
+    }
+</style>
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>⚙️ System Settings & Configuration</h1>
+    </div>
+    
+    <div class="nav-tabs">
+        <a href="{% url 'clinic:admin-monitoring' %}" class="nav-tab">Overview</a>
+        <a href="{% url 'clinic:admin-users' %}" class="nav-tab">Users</a>
+        <a href="{% url 'clinic:admin-health' %}" class="nav-tab">Health Records</a>
+        <a href="{% url 'clinic:admin-analytics' %}" class="nav-tab">API Analytics</a>
+        <a href="#" class="nav-tab active">Settings</a>
+    </div>
+    
+    <!-- System Configuration Overview -->
+    <div class="card">
+        <div class="card-title">📋 System Configuration</div>
+        <div style="display: grid; gap: 12px;">
+            <div class="setting-item">
+                <div class="setting-label">
+                    <div class="setting-name">Debug Mode</div>
+                    <div class="setting-description">Development mode status</div>
+                </div>
+                <div class="setting-status {% if debug_mode %}status-enabled{% else %}status-disabled{% endif %}">
+                    {% if debug_mode %}🔴 Enabled{% else %}🟢 Disabled{% endif %}
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-label">
+                    <div class="setting-name">ML Model</div>
+                    <div class="setting-description">Disease prediction model status</div>
+                </div>
+                <div class="setting-status {% if ml_model_exists %}status-enabled{% else %}status-disabled{% endif %}">
+                    {% if ml_model_exists %}✓ Loaded{% else %}❌ Missing{% endif %}
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-label">
+                    <div class="setting-name">LLM Providers</div>
+                    <div class="setting-description">{{ configured_providers }} of {{ total_providers }} configured</div>
+                </div>
+                <div class="setting-status status-enabled">
+                    ✓ {{ configured_providers }}/{{ total_providers }}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- LLM API Providers Status -->
+    <div class="card">
+        <div class="card-title">🤖 LLM API Provider Configuration</div>
+        <div class="provider-grid">
+            {% for name, provider in llm_providers.items %}
+            <div class="provider-item">
+                <div class="provider-info">
+                    <div class="provider-name">{{ provider.icon }} {{ name }}</div>
+                    <div class="provider-tier">{{ provider.tier }}</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    {% if provider.configured %}
+                        <span class="badge badge-success">✓ Configured</span>
+                    {% else %}
+                        <span class="badge badge-danger">Not Set</span>
+                    {% endif %}
+                    <a href="{{ provider.dashboard }}" target="_blank" style="color: var(--cpsu-green); text-decoration: none; font-size: 12px; font-weight: 600;">
+                        Dashboard →
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="info-box">
+            <strong>💡 Setup Guide:</strong> To enable LLM providers, add API keys to your `.env` file:
+            <code style="display: block; margin-top: 10px; font-size: 11px; background: rgba(0,0,0,0.05); padding: 10px; border-radius: 4px;">
+GEMINI_API_KEY=your_key_here<br>
+OPENROUTER_API_KEY=your_key_here<br>
+GROQ_API_KEY=your_key_here<br>
+COHERE_API_KEY=your_key_here
+            </code>
+        </div>
+    </div>
+    
+    <!-- Database Statistics -->
+    <div class="card">
+        <div class="card-title">💾 Database Statistics</div>
+        <div class="database-grid">
+            <div class="database-stat">
+                <div class="database-count">{{ user_count }}</div>
+                <div class="database-label">👤 Users</div>
+            </div>
+            <div class="database-stat">
+                <div class="database-count">{{ symptom_count }}</div>
+                <div class="database-label">🏥 Symptoms</div>
+            </div>
+            <div class="database-stat">
+                <div class="database-count">{{ chat_count }}</div>
+                <div class="database-label">💬 Chats</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="card">
+        <div class="card-title">⚡ Administration Actions</div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
+            <a href="{% url 'admin:index' %}" style="padding: 15px; border: 2px solid var(--cpsu-green); border-radius: 8px; text-decoration: none; color: var(--cpsu-green); text-align: center; font-weight: 600; transition: all 0.3s; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">🏠</span>
+                Admin Home
+            </a>
+            <a href="{% url 'admin:clinic_customuser_changelist' %}" style="padding: 15px; border: 2px solid var(--cpsu-yellow); border-radius: 8px; text-decoration: none; color: #856404; text-align: center; font-weight: 600; transition: all 0.3s; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">👥</span>
+                Manage Users
+            </a>
+            <a href="{% url 'admin:logout' %}" style="padding: 15px; border: 2px solid #dc3545; border-radius: 8px; text-decoration: none; color: #dc3545; text-align: center; font-weight: 600; transition: all 0.3s; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">🚪</span>
+                Logout
+            </a>
+        </div>
+    </div>
+    
+    <!-- System Information -->
+    <div class="card">
+        <div class="card-title">ℹ️ System Information</div>
+        <div style="display: grid; gap: 12px; font-size: 13px;">
+            <div style="padding: 10px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between;">
+                <span style="color: var(--text-light);">Application</span>
+                <span style="font-weight: 600; color: var(--text-dark);">CPSU Virtual Health Assistant</span>
+            </div>
+            <div style="padding: 10px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between;">
+                <span style="color: var(--text-light);">Version</span>
+                <span style="font-weight: 600; color: var(--text-dark);">2.0.0</span>
+            </div>
+            <div style="padding: 10px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between;">
+                <span style="color: var(--text-light);">Framework</span>
+                <span style="font-weight: 600; color: var(--text-dark);">Django REST Framework</span>
+            </div>
+            <div style="padding: 10px; display: flex; justify-content: space-between;">
+                <span style="color: var(--text-light);">Last Updated</span>
+                <span style="font-weight: 600; color: var(--text-dark);">{{ last_updated|date:"M d, Y H:i:s" }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Documentation Links -->
+    <div class="card">
+        <div class="card-title">📚 Documentation & Support</div>
+        <div style="display: grid; gap: 10px; font-size: 13px;">
+            <div style="padding: 15px; background: var(--bg-light); border-radius: 8px; border-left: 3px solid var(--cpsu-yellow);">
+                <strong style="color: var(--cpsu-green);">📖 API Documentation:</strong> Complete API reference is available in <code>Django/docs/api/API_DOCS.md</code>
+            </div>
+            <div style="padding: 15px; background: var(--bg-light); border-radius: 8px; border-left: 3px solid var(--cpsu-yellow);">
+                <strong style="color: var(--cpsu-green);">🏗️ Architecture Guide:</strong> System architecture details are in <code>Django/docs/architecture/</code>
+            </div>
+            <div style="padding: 15px; background: var(--bg-light); border-radius: 8px; border-left: 3px solid var(--cpsu-yellow);">
+                <strong style="color: var(--cpsu-green);">🚀 Deployment Guide:</strong> Production deployment steps are in <code>Django/docs/deployment/</code>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
