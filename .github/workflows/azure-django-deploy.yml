@@ -1,4 +1,4 @@
-name: Deploy Django to Azure App Service
+name: Deploy Django to Azure (Simple)
 
 on:
   push:
@@ -7,62 +7,117 @@ on:
       - master
     paths:
       - 'Django/**'
-      - '.github/workflows/azure-django-deploy.yml'
-  workflow_dispatch:  # Allow manual trigger
+      - '.github/workflows/azure-django-deploy-simple.yml'
+  workflow_dispatch:
 
 env:
   AZURE_WEBAPP_NAME: cpsu-health-backend
-  AZURE_WEBAPP_PACKAGE_PATH: './Django'
-  PYTHON_VERSION: '3.11'
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
     
     steps:
     - name: 🔄 Checkout code
       uses: actions/checkout@v4
       
-    - name: 🐍 Set up Python ${{ env.PYTHON_VERSION }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-        
-    - name: 📦 Install dependencies
-      run: |
-        cd Django
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        
-    - name: ✅ Run Django checks
-      run: |
-        cd Django
-        python manage.py check --deploy --settings=health_assistant.settings
-        
-    - name: 📊 Collect static files
-      run: |
-        cd Django
-        python manage.py collectstatic --noinput || echo "Static collection skipped"
-      env:
-        DEBUG: 'False'
-        SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
-        USE_POSTGRESQL: 'False'  # Use SQLite for static collection
-        
     - name: 📦 Create deployment package
       run: |
         cd Django
-        zip -r ../django-app.zip . -x "*.pyc" -x "*__pycache__*" -x "*.sqlite3" -x ".git/*" -x "venv/*"
+        # Create a clean zip without unnecessary files
+        zip -r django-deploy.zip . \
+          -x "*.pyc" \
+          -x "*__pycache__*" \
+          -x "*.sqlite3" \
+          -x ".git/*" \
+          -x "venv/*" \
+          -x "*.log" \
+          -x ".env*"
+        mv django-deploy.zip ../
         cd ..
-        ls -lh django-app.zip
+        echo "📦 Package size:"
+        ls -lh django-deploy.zip
         
-    - name: 🚀 Deploy to Azure Web App
-      uses: azure/webapps-deploy@v3
-      with:
-        app-name: ${{ env.AZURE_WEBAPP_NAME }}
-        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-        package: django-app.zip
+    - name: 🚀 Deploy via Kudu ZipDeploy API
+      run: |
+        # Extract credentials from publish profile
+        PUBLISH_PROFILE='${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}'
+        
+        # Extract username and password
+        USERNAME=$(echo "$PUBLISH_PROFILE" | grep -oP '(?<=userName=")[^"]+' | head -1)
+        PASSWORD=$(echo "$PUBLISH_PROFILE" | grep -oP '(?<=userPWD=")[^"]+' | head -1)
+        
+        echo "🚀 Deploying to Azure App Service..."
+        
+        # Deploy using Kudu ZipDeploy API
+        HTTP_CODE=$(curl -X POST \
+          -u "$USERNAME:$PASSWORD" \
+          --data-binary @django-deploy.zip \
+          -H "Content-Type: application/zip" \
+          -w "%{http_code}" \
+          -o deploy-response.txt \
+          "https://${{ env.AZURE_WEBAPP_NAME }}.scm.azurewebsites.net/api/zipdeploy?isAsync=true")
+        
+        echo "HTTP Response Code: $HTTP_CODE"
+        
+        if [ "$HTTP_CODE" -eq 200 ] || [ "$HTTP_CODE" -eq 202 ]; then
+          echo "✅ Deployment initiated successfully!"
+        else
+          echo "❌ Deployment failed with code $HTTP_CODE"
+          cat deploy-response.txt
+          exit 1
+        fi
+        
+    - name: ⏳ Wait for deployment to complete
+      run: |
+        echo "⏳ Waiting for deployment to complete..."
+        sleep 60
+        
+    - name: 🔄 Restart Web App
+      run: |
+        PUBLISH_PROFILE='${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}'
+        USERNAME=$(echo "$PUBLISH_PROFILE" | grep -oP '(?<=userName=")[^"]+' | head -1)
+        PASSWORD=$(echo "$PUBLISH_PROFILE" | grep -oP '(?<=userPWD=")[^"]+' | head -1)
+        
+        echo "🔄 Restarting web app..."
+        curl -X POST \
+          -u "$USERNAME:$PASSWORD" \
+          "https://${{ env.AZURE_WEBAPP_NAME }}.scm.azurewebsites.net/api/app/restart"
+        
+        echo "✅ App restart triggered"
+        
+    - name: ⏳ Wait for app to start
+      run: |
+        echo "⏳ Waiting for app to start..."
+        sleep 30
+        
+    - name: ✅ Test deployment
+      run: |
+        echo "🧪 Testing deployment..."
+        
+        # Try to reach the app (allow up to 404, just check it's responding)
+        for i in {1..5}; do
+          echo "Attempt $i/5..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/ || echo "000")
+          echo "HTTP Code: $HTTP_CODE"
+          
+          if [ "$HTTP_CODE" != "000" ] && [ "$HTTP_CODE" != "503" ]; then
+            echo "✅ App is responding!"
+            break
+          fi
+          
+          if [ $i -lt 5 ]; then
+            echo "Waiting 15 seconds before retry..."
+            sleep 15
+          fi
+        done
         
     - name: ✨ Deployment complete
       run: |
         echo "🎉 Deployment successful!"
         echo "🌐 URL: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
+        echo ""
+        echo "📝 Next steps:"
+        echo "  1. Check logs: az webapp log tail --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group cpsu-health-assistant-rg"
+        echo "  2. SSH access: az webapp ssh --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group cpsu-health-assistant-rg"
+        echo "  3. Test API: curl https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/api/"

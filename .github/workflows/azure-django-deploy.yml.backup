@@ -1,0 +1,68 @@
+name: Deploy Django to Azure App Service
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'Django/**'
+      - '.github/workflows/azure-django-deploy.yml'
+  workflow_dispatch:  # Allow manual trigger
+
+env:
+  AZURE_WEBAPP_NAME: cpsu-health-backend
+  AZURE_WEBAPP_PACKAGE_PATH: './Django'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 🔄 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: 📦 Install dependencies
+      run: |
+        cd Django
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: ✅ Run Django checks
+      run: |
+        cd Django
+        python manage.py check --deploy --settings=health_assistant.settings
+        
+    - name: 📊 Collect static files
+      run: |
+        cd Django
+        python manage.py collectstatic --noinput || echo "Static collection skipped"
+      env:
+        DEBUG: 'False'
+        SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+        USE_POSTGRESQL: 'False'  # Use SQLite for static collection
+        
+    - name: 📦 Create deployment package
+      run: |
+        cd Django
+        zip -r ../django-app.zip . -x "*.pyc" -x "*__pycache__*" -x "*.sqlite3" -x ".git/*" -x "venv/*"
+        cd ..
+        ls -lh django-app.zip
+        
+    - name: 🚀 Deploy to Azure Web App
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        package: django-app.zip
+        
+    - name: ✨ Deployment complete
+      run: |
+        echo "🎉 Deployment successful!"
+        echo "🌐 URL: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
