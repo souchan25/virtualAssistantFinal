@@ -1,0 +1,83 @@
+name: Upload ML Models to Azure (Simplified)
+
+# This version doesn't require AZURE_CREDENTIALS
+# It only needs AZURE_WEBAPP_PUBLISH_PROFILE
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'ML/models/**'
+      - 'ML/Datasets/active/**'
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: cpsu-health-backend
+
+jobs:
+  upload-ml:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 🔄 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 📦 Create ML package
+      run: |
+        echo "Creating ML.zip package..."
+        cd ML
+        zip -r ../ML.zip . -x "*.pyc" -x "*__pycache__*" -x "scripts/*"
+        cd ..
+        ls -lh ML.zip
+        
+    - name: 📤 Upload ML folder via Kudu API
+      run: |
+        # Extract credentials from publish profile
+        PUBLISH_PROFILE='${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}'
+        
+        # Extract username and password
+        USERNAME=$(echo "$PUBLISH_PROFILE" | grep -oP '(?<=userName=")[^"]+' | head -1)
+        PASSWORD=$(echo "$PUBLISH_PROFILE" | grep -oP '(?<=userPWD=")[^"]+' | head -1)
+        
+        # Upload ML.zip using Kudu ZIP API
+        echo "Uploading ML models to Azure App Service..."
+        
+        HTTP_CODE=$(curl -X POST \
+          -u "$USERNAME:$PASSWORD" \
+          --data-binary @ML.zip \
+          -w "%{http_code}" \
+          -o upload-response.txt \
+          "https://${{ env.AZURE_WEBAPP_NAME }}.scm.azurewebsites.net/api/zip/site/wwwroot/ML/")
+        
+        echo "HTTP Response Code: $HTTP_CODE"
+        
+        if [ "$HTTP_CODE" -eq 200 ] || [ "$HTTP_CODE" -eq 201 ]; then
+          echo "✅ ML models uploaded successfully!"
+        else
+          echo "❌ Upload failed with code $HTTP_CODE"
+          cat upload-response.txt
+          exit 1
+        fi
+        
+    - name: 🔄 Restart Web App via Kudu
+      run: |
+        # Extract credentials from publish profile
+        PUBLISH_PROFILE='${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}'
+        USERNAME=$(echo "$PUBLISH_PROFILE" | grep -oP '(?<=userName=")[^"]+' | head -1)
+        PASSWORD=$(echo "$PUBLISH_PROFILE" | grep -oP '(?<=userPWD=")[^"]+' | head -1)
+        
+        # Restart via Kudu API
+        echo "Restarting web app..."
+        curl -X POST \
+          -u "$USERNAME:$PASSWORD" \
+          "https://${{ env.AZURE_WEBAPP_NAME }}.scm.azurewebsites.net/api/app/restart"
+        
+        echo "✅ App restart triggered"
+        
+    - name: ✨ Upload complete
+      run: |
+        echo "🎉 ML models uploaded and app restarted!"
+        echo "📊 Model: disease_predictor_v2.pkl"
+        echo "📁 Datasets: symptom descriptions, precautions, severity"

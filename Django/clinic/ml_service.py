@@ -32,7 +32,7 @@ class MLPredictor:
         self._load_metadata()
     
     def _load_model(self):
-        """Load trained ML model"""
+        """Load trained ML model (gracefully handles missing files)"""
         model_path = settings.ML_MODEL_PATH
         
         try:
@@ -46,18 +46,34 @@ class MLPredictor:
             else:
                 # Fallback to v1 model
                 fallback_path = model_path.parent / 'disease_predictor.pkl'
-                with open(fallback_path, 'rb') as f:
-                    model_data = pickle.load(f)
-                self.model = model_data['model']
-                self.feature_names = model_data['feature_names']
-                print(f"[OK] Loaded ML model from {fallback_path}")
+                if fallback_path.exists():
+                    with open(fallback_path, 'rb') as f:
+                        model_data = pickle.load(f)
+                    self.model = model_data['model']
+                    self.feature_names = model_data['feature_names']
+                    print(f"[OK] Loaded ML model from {fallback_path}")
+                else:
+                    print(f"[WARNING] ML model not found at {model_path} or {fallback_path}")
+                    print("[WARNING] ML predictions will be unavailable until model is uploaded")
+                    self.model = None
+                    self.feature_names = []
         except Exception as e:
             print(f"[ERROR] Error loading ML model: {e}")
-            raise
+            print("[WARNING] ML predictions will be unavailable")
+            self.model = None
+            self.feature_names = []
     
     def _load_metadata(self):
-        """Load symptom severity, descriptions, and precautions"""
+        """Load symptom severity, descriptions, and precautions (gracefully handles missing files)"""
         datasets_path = settings.ML_DATASETS_PATH
+        
+        # If datasets path doesn't exist, skip loading
+        if not datasets_path.exists():
+            print(f"[WARNING] ML datasets not found at {datasets_path}")
+            print("[WARNING] ML metadata will be empty until datasets are uploaded")
+            return
+        
+        original_datasets_path = datasets_path
         
         try:
             # Load symptom severity
@@ -100,7 +116,17 @@ class MLPredictor:
             Dictionary with prediction results
         """
         if not self.model or not self.feature_names:
-            raise ValueError("ML model not loaded")
+            return {
+                'predicted_disease': 'ML Model Not Available',
+                'confidence': 0.0,
+                'matched_symptoms': symptoms,
+                'unmatched_symptoms': [],
+                'top_predictions': [],
+                'description': 'The ML prediction model is not currently available. Please upload the ML models to enable predictions.',
+                'precautions': ['Contact clinic staff for assistance', 'Monitor your symptoms', 'Rest and stay hydrated', 'Seek medical attention if symptoms worsen'],
+                'severity_score': 0,
+                'warning': 'ML model not loaded - predictions unavailable'
+            }
         
         # Normalize symptom names (lowercase, replace spaces with underscores)
         normalized_symptoms = [s.lower().replace(' ', '_') for s in symptoms]

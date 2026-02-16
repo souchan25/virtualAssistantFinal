@@ -1,0 +1,122 @@
+name: CI - Tests and Linting
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  django-tests:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+    - name: 🔄 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: 📦 Install dependencies
+      run: |
+        cd Django
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-django pytest-cov
+        
+    - name: ✅ Run Django checks
+      run: |
+        cd Django
+        python manage.py check
+      env:
+        DEBUG: 'True'
+        SECRET_KEY: 'test-secret-key-for-ci'
+        
+    - name: 🧪 Run tests
+      run: |
+        cd Django
+        pytest --cov=clinic --cov-report=xml --cov-report=term
+      env:
+        DEBUG: 'True'
+        SECRET_KEY: 'test-secret-key-for-ci'
+        USE_POSTGRESQL: 'True'
+        DB_NAME: 'test_db'
+        DB_USER: 'postgres'
+        DB_PASSWORD: 'postgres'
+        DB_HOST: 'localhost'
+        DB_PORT: '5432'
+        
+    - name: 📊 Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./Django/coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        
+  ml-validation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 🔄 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: 📦 Install ML dependencies
+      run: |
+        pip install pandas numpy scikit-learn
+        
+    - name: ✅ Validate ML model exists
+      run: |
+        if [ -f "ML/models/disease_predictor_v2.pkl" ]; then
+          echo "✅ ML model found"
+          ls -lh ML/models/disease_predictor_v2.pkl
+        else
+          echo "⚠️ ML model not found - will need to be trained"
+        fi
+        
+    - name: ✅ Validate datasets
+      run: |
+        echo "Checking ML datasets..."
+        ls -lh ML/Datasets/active/
+        
+        required_files=(
+          "ML/Datasets/active/train.csv"
+          "ML/Datasets/active/test.csv"
+          "ML/Datasets/active/symptom_Description.csv"
+          "ML/Datasets/active/symptom_precaution.csv"
+          "ML/Datasets/active/Symptom-severity.csv"
+        )
+        
+        for file in "${required_files[@]}"; do
+          if [ -f "$file" ]; then
+            echo "✅ $file exists"
+          else
+            echo "❌ $file missing!"
+            exit 1
+          fi
+        done

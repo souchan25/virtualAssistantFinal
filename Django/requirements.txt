@@ -6,6 +6,9 @@ django-jazzmin>=2.6.0  # Modern admin interface
 # Django REST Framework
 djangorestframework>=3.14.0
 
+# Production WSGI Server
+gunicorn>=21.2.0  # For Azure App Service
+
 # ML Dependencies (shared with ML/ folder)
 pandas>=1.3.0
 numpy>=1.21.0

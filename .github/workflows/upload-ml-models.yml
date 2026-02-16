@@ -1,0 +1,66 @@
+name: Upload ML Models to Azure
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'ML/models/**'
+      - 'ML/Datasets/active/**'
+      - '.github/workflows/upload-ml-models.yml'
+  workflow_dispatch:  # Allow manual trigger
+
+env:
+  AZURE_WEBAPP_NAME: cpsu-health-backend
+
+jobs:
+  upload-ml:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 🔄 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 📦 Create ML package
+      run: |
+        echo "Creating ML.zip package..."
+        cd ML
+        zip -r ../ML.zip . -x "*.pyc" -x "*__pycache__*" -x "scripts/*"
+        cd ..
+        ls -lh ML.zip
+        
+    - name: 🔐 Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        
+    - name: 📤 Upload ML folder via Kudu API
+      run: |
+        # Get publish profile credentials
+        PUBLISH_PROFILE='${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}'
+        
+        # Extract username and password from publish profile
+        USERNAME=$(echo "$PUBLISH_PROFILE" | grep -oP '(?<=userName=")[^"]+' | head -1)
+        PASSWORD=$(echo "$PUBLISH_PROFILE" | grep -oP '(?<=userPWD=")[^"]+' | head -1)
+        
+        # Upload ML.zip to /home/site/wwwroot/../ using Kudu ZipDeploy
+        echo "Uploading ML models to Azure..."
+        curl -X POST \
+          -u "$USERNAME:$PASSWORD" \
+          --data-binary @ML.zip \
+          "https://${{ env.AZURE_WEBAPP_NAME }}.scm.azurewebsites.net/api/zip/site/wwwroot/ML/"
+        
+        echo "✅ ML models uploaded successfully!"
+        
+    - name: 🔄 Restart Web App
+      run: |
+        az webapp restart \
+          --name ${{ env.AZURE_WEBAPP_NAME }} \
+          --resource-group cpsu-health-assistant-rg
+          
+    - name: ✨ Upload complete
+      run: |
+        echo "🎉 ML models uploaded and app restarted!"
+        echo "📊 Model: disease_predictor_v2.pkl"
+        echo "📁 Datasets: symptom descriptions, precautions, severity"

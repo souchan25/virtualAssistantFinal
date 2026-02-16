@@ -37,8 +37,8 @@ def load_and_prepare_data_with_noise(noise_level=0.05):
     print("Loading datasets...")
     
     # Load main training data
-    train_df = pd.read_csv('Datasets/train.csv')
-    test_df = pd.read_csv('Datasets/test.csv')
+    train_df = pd.read_csv('../Datasets/active/train.csv')
+    test_df = pd.read_csv('../Datasets/active/test.csv')
     
     # Remove any unnamed columns
     train_df = train_df.loc[:, ~train_df.columns.str.contains('^Unnamed')]
@@ -109,9 +109,13 @@ def train_realistic_model(X_train, y_train, X_test, y_test):
     
     return model, test_acc
 
-def save_model(model, feature_names, model_name='disease_predictor_realistic.pkl'):
+def save_model(model, feature_names, model_name='../models/disease_predictor_v2.pkl'):
     """Save the trained model"""
     print(f"\nSaving model to {model_name}...")
+    
+    # Create models directory if it doesn't exist
+    import os
+    os.makedirs(os.path.dirname(model_name), exist_ok=True)
     
     model_data = {
         'model': model,
@@ -121,7 +125,7 @@ def save_model(model, feature_names, model_name='disease_predictor_realistic.pkl
     with open(model_name, 'wb') as f:
         pickle.dump(model_data, f)
     
-    print(f"✓ Model saved successfully!")
+    print(f"[OK] Model saved successfully!")
 
 def main():
     print("="*60)
@@ -163,7 +167,7 @@ def main():
     for result in results:
         noise_pct = result['noise_level'] * 100
         acc_pct = result['accuracy'] * 100
-        print(f"Noise {noise_pct:.1f}% → Accuracy {acc_pct:.2f}%")
+        print(f"Noise {noise_pct:.1f}% -> Accuracy {acc_pct:.2f}%")
     
     # Find best result in 85-95% range
     realistic_results = [r for r in results if 0.85 <= r['accuracy'] <= 0.95]
@@ -171,8 +175,8 @@ def main():
     if realistic_results:
         # Choose the one closest to 90%
         best_result = min(realistic_results, key=lambda r: abs(r['accuracy'] - 0.90))
-        print(f"\n✓ Optimal noise level: {best_result['noise_level']*100}%")
-        print(f"✓ Achieved accuracy: {best_result['accuracy']*100:.2f}%")
+        print(f"\n[OK] Optimal noise level: {best_result['noise_level']*100}%")
+        print(f"[OK] Achieved accuracy: {best_result['accuracy']*100:.2f}%")
         
         # Save this model
         save_model(best_result['model'], best_result['feature_names'])
@@ -192,7 +196,7 @@ def main():
         print("...")
         
     else:
-        print("\n⚠️ No model achieved 85-95% accuracy range.")
+        print("\n[WARNING] No model achieved 85-95% accuracy range.")
         print("Saving best model anyway...")
         best_result = max(results, key=lambda r: r['accuracy'])
         save_model(best_result['model'], best_result['feature_names'])
