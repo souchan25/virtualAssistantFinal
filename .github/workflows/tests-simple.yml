@@ -1,0 +1,91 @@
+name: Tests (Simple)
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  django-check:
+    name: Django System Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 🔄 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: 📦 Install dependencies
+      run: |
+        cd Django
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: ✅ Run Django checks
+      run: |
+        cd Django
+        python manage.py check --deploy
+      env:
+        DJANGO_SETTINGS_MODULE: 'health_assistant.settings'
+        DEBUG: 'False'
+        SECRET_KEY: 'test-secret-key-for-ci-checks'
+        USE_POSTGRESQL: 'False'
+        
+  validate-ml:
+    name: Validate ML Assets
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 🔄 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: ✅ Check ML model exists
+      run: |
+        if [ -f "ML/models/disease_predictor_v2.pkl" ]; then
+          echo "✅ ML model found"
+          ls -lh ML/models/disease_predictor_v2.pkl
+        else
+          echo "⚠️ ML model not found"
+          echo "Run: cd ML/scripts && python train_model_realistic.py"
+          exit 1
+        fi
+        
+    - name: ✅ Check datasets exist
+      run: |
+        echo "Checking required datasets..."
+        
+        datasets=(
+          "ML/Datasets/active/train.csv"
+          "ML/Datasets/active/test.csv"
+          "ML/Datasets/active/symptom_Description.csv"
+          "ML/Datasets/active/symptom_precaution.csv"
+          "ML/Datasets/active/Symptom-severity.csv"
+        )
+        
+        all_present=true
+        
+        for dataset in "${datasets[@]}"; do
+          if [ -f "$dataset" ]; then
+            echo "✅ $dataset"
+          else
+            echo "❌ $dataset missing!"
+            all_present=false
+          fi
+        done
+        
+        if [ "$all_present" = false ]; then
+          exit 1
+        fi
+        
+        echo ""
+        echo "✅ All datasets present"
