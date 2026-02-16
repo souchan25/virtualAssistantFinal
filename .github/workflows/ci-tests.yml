@@ -50,14 +50,18 @@ jobs:
         cd Django
         python manage.py check
       env:
+        DJANGO_SETTINGS_MODULE: 'health_assistant.settings'
         DEBUG: 'True'
         SECRET_KEY: 'test-secret-key-for-ci'
+        USE_POSTGRESQL: 'False'
         
     - name: 🧪 Run tests
       run: |
         cd Django
-        pytest --cov=clinic --cov-report=xml --cov-report=term
+        python manage.py check
+        pytest --cov=clinic --cov-report=xml --cov-report=term -v
       env:
+        DJANGO_SETTINGS_MODULE: 'health_assistant.settings'
         DEBUG: 'True'
         SECRET_KEY: 'test-secret-key-for-ci'
         USE_POSTGRESQL: 'True'
