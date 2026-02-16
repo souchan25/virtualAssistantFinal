@@ -212,8 +212,14 @@ CORS_ALLOW_HEADERS = [
 ]
 
 # ML Model settings
-ML_MODEL_PATH = BASE_DIR.parent / 'ML' / 'models' / 'disease_predictor_v2.pkl'
-ML_DATASETS_PATH = BASE_DIR.parent / 'ML' / 'Datasets' / 'active'
+# On Azure, ML files are at /home/site/wwwroot/ML/
+# Locally, they're at BASE_DIR.parent / 'ML'
+_azure_ml_base = Path('/home/site/wwwroot/ML')
+_local_ml_base = BASE_DIR.parent / 'ML'
+_ml_base = _azure_ml_base if _azure_ml_base.exists() else _local_ml_base
+
+ML_MODEL_PATH = _ml_base / 'models' / 'disease_predictor_v2.pkl'
+ML_DATASETS_PATH = _ml_base / 'Datasets' / 'active'
 
 # LLM API Configuration
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
