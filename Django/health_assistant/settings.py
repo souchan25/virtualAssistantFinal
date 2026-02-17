@@ -192,6 +192,9 @@ CORS_ALLOWED_ORIGINS = _get_env_list(
         'http://127.0.0.1:5173',
         # Azure Static Web Apps (Production)
         'https://delightful-forest-0eb2a9000.6.azurestaticapps.net',
+        # Custom domain
+        'https://www.cpsuhealthassistant.app',
+        'https://cpsuhealthassistant.app',
     ],
 )
 

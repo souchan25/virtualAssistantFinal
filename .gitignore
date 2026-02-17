@@ -52,6 +52,10 @@ django-deploy*.tar.gz
 # Local cleanup/archive folders
 cleanup_archive/
 
+# Deployment guides with secrets
+AZURE_LLM_FIX_GUIDE.md
+DEPLOYMENT_STEPS.md
+
 # Python
 __pycache__/
 *.pyc
