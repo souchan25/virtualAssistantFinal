@@ -1,4 +1,4 @@
-name: Deploy Django to Azure (Working)
+name: Deploy Django to Azure
 
 on:
   push:
@@ -15,17 +15,14 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: 🔄 Checkout code
+    - name: Checkout code
       uses: actions/checkout@v4
-      
-    - name: 📦 Create deployment package
+
+    - name: Create deployment package
       run: |
         cd Django
-        echo "Creating deployment package..."
-        
-        # Create a clean deployment zip
         zip -r ../django-app.zip . \
           -x "*.pyc" \
           -x "*__pycache__/*" \
@@ -33,130 +30,107 @@ jobs:
           -x ".git/*" \
           -x "venv/*" \
           -x "env/*" \
-          -x "*.log" \
-          -x "test_*" \
-          -x "*_test.py" \
-          -x "tests/*"
-        
+          -x "*.log"
         cd ..
-        echo "📦 Package created:"
+        echo "Package size:"
         ls -lh django-app.zip
-        
-    - name: 🚀 Deploy using Kudu ZipDeploy
+
+    - name: Extract credentials
+      id: creds
       run: |
-        echo "Extracting credentials from publish profile..."
-        
-        # Get credentials from the publish profile
         PUBLISH_PROFILE='${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}'
-        
-        # Extract the Zip Deploy profile section
-        ZIP_PROFILE=$(echo "$PUBLISH_PROFILE" | grep -oP '<publishProfile[^>]*publishMethod="ZipDeploy"[^>]*>.*?</publishProfile>' | head -1)
-        
-        if [ -z "$ZIP_PROFILE" ]; then
-          echo "⚠️ Zip Deploy profile not found, trying to extract from any profile..."
-          USERNAME=$(echo "$PUBLISH_PROFILE" | grep -oP 'userName="\$[^"]+' | head -1 | cut -d'"' -f2)
-          PASSWORD=$(echo "$PUBLISH_PROFILE" | grep -oP 'userPWD="[^"]+' | head -1 | cut -d'"' -f2)
-        else
-          USERNAME=$(echo "$ZIP_PROFILE" | grep -oP 'userName="[^"]+' | cut -d'"' -f2)
-          PASSWORD=$(echo "$ZIP_PROFILE" | grep -oP 'userPWD="[^"]+' | cut -d'"' -f2)
-        fi
-        
-        echo "Username length: ${#USERNAME}"
-        echo "Password length: ${#PASSWORD}"
-        
+        USERNAME=$(echo "$PUBLISH_PROFILE" | grep -oP 'userName="\$[^"]+' | head -1 | cut -d'"' -f2)
+        PASSWORD=$(echo "$PUBLISH_PROFILE" | grep -oP 'userPWD="[^"]+' | head -1 | cut -d'"' -f2)
+
         if [ -z "$USERNAME" ] || [ -z "$PASSWORD" ]; then
-          echo "❌ Failed to extract credentials from publish profile"
-          echo "Please update the AZURE_WEBAPP_PUBLISH_PROFILE secret with fresh credentials"
+          echo "Failed to extract credentials"
           exit 1
         fi
-        
-        echo "🚀 Deploying to Azure App Service..."
-        
-        # Deploy using Kudu ZipDeploy API with async
+
+        echo "username=$USERNAME" >> $GITHUB_OUTPUT
+        echo "::add-mask::$PASSWORD"
+        echo "password=$PASSWORD" >> $GITHUB_OUTPUT
+        echo "Credentials extracted (user length: ${#USERNAME}, pass length: ${#PASSWORD})"
+
+    - name: Deploy via ZipDeploy
+      run: |
+        USERNAME="${{ steps.creds.outputs.username }}"
+        PASSWORD="${{ steps.creds.outputs.password }}"
+
         HTTP_CODE=$(curl -X POST \
-          "https://$USERNAME:$PASSWORD@${{ env.AZURE_WEBAPP_NAME }}.scm.azurewebsites.net/api/zipdeploy?isAsync=true" \
+          "https://${USERNAME}:${PASSWORD}@${{ env.AZURE_WEBAPP_NAME }}.scm.azurewebsites.net/api/zipdeploy?isAsync=true" \
           -H "Content-Type: application/zip" \
           --data-binary @django-app.zip \
           -w "%{http_code}" \
-          -o deploy-response.txt \
+          -o /dev/null \
           -s)
-        
-        echo "HTTP Response Code: $HTTP_CODE"
-        
-        if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "202" ]; then
-          echo "✅ Deployment initiated successfully!"
-          cat deploy-response.txt
-        else
-          echo "❌ Deployment failed with HTTP $HTTP_CODE"
-          cat deploy-response.txt
+
+        echo "Deploy response: $HTTP_CODE"
+
+        if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "202" ]; then
+          echo "Deployment failed with HTTP $HTTP_CODE"
           exit 1
         fi
-        
-    - name: ⏳ Wait for deployment
+
+        echo "Deployment initiated, waiting for Oryx build..."
+
+    - name: Wait for Oryx build to complete
       run: |
-        echo "⏳ Waiting 90 seconds for deployment to complete..."
-        sleep 90
-        
-    - name: ⚙️ Configure startup command
-      run: |
-        PUBLISH_PROFILE='${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}'
-        USERNAME=$(echo "$PUBLISH_PROFILE" | grep -oP 'userName="\$[^"]+' | head -1 | cut -d'"' -f2)
-        PASSWORD=$(echo "$PUBLISH_PROFILE" | grep -oP 'userPWD="[^"]+' | head -1 | cut -d'"' -f2)
-        
-        echo "⚙️ Setting startup command..."
-        curl -X POST \
-          "https://$USERNAME:$PASSWORD@${{ env.AZURE_WEBAPP_NAME }}.scm.azurewebsites.net/api/settings" \
-          -H "Content-Type: application/json" \
-          -d '{"WEBSITE_STARTUP_FILE": "/home/site/wwwroot/startup.sh"}' \
-          -s
-        
-        echo "✅ Startup command configured"
-        
-    - name: 🔄 Restart web app
-      run: |
-        PUBLISH_PROFILE='${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}'
-        USERNAME=$(echo "$PUBLISH_PROFILE" | grep -oP 'userName="\$[^"]+' | head -1 | cut -d'"' -f2)
-        PASSWORD=$(echo "$PUBLISH_PROFILE" | grep -oP 'userPWD="[^"]+' | head -1 | cut -d'"' -f2)
-        
-        echo "🔄 Restarting app..."
-        curl -X POST \
-          "https://$USERNAME:$PASSWORD@${{ env.AZURE_WEBAPP_NAME }}.scm.azurewebsites.net/api/app/restart" \
-          -s
-        
-        echo "✅ Restart triggered"
-        
-    - name: ⏳ Wait for app to start
-      run: |
-        echo "⏳ Waiting 45 seconds for app to start..."
-        sleep 45
-        
-    - name: ✅ Verify deployment
-      run: |
-        echo "🧪 Testing deployment..."
-        
-        for i in {1..10}; do
-          echo "Attempt $i/10..."
-          
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-            -m 10 \
-            "https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/" || echo "000")
-          
-          echo "  HTTP Code: $HTTP_CODE"
-          
-          # Accept any non-5xx response as success
-          if [ "$HTTP_CODE" != "000" ] && [ "$HTTP_CODE" != "503" ] && [ "$HTTP_CODE" != "502" ]; then
-            echo "✅ App is responding!"
-            echo ""
-            echo "🎉 Deployment successful!"
-            echo "🌐 URL: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
-            exit 0
+        USERNAME="${{ steps.creds.outputs.username }}"
+        PASSWORD="${{ steps.creds.outputs.password }}"
+        KUDU="https://${USERNAME}:${PASSWORD}@${{ env.AZURE_WEBAPP_NAME }}.scm.azurewebsites.net"
+
+        echo "Polling build status (build takes ~5-7 minutes for ML dependencies)..."
+
+        for i in $(seq 1 40); do
+          sleep 15
+
+          RESULT=$(curl -s "$KUDU/api/deployments/latest" 2>/dev/null || echo '{}')
+          STATUS=$(echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status',''))" 2>/dev/null || echo "")
+          COMPLETE=$(echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('complete',''))" 2>/dev/null || echo "")
+          PROGRESS=$(echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('progress',''))" 2>/dev/null || echo "")
+
+          echo "  [$((i*15))s] Status=$STATUS Complete=$COMPLETE Progress=$PROGRESS"
+
+          if [ "$COMPLETE" = "True" ]; then
+            if [ "$STATUS" = "4" ]; then
+              echo "Build completed successfully!"
+              break
+            else
+              echo "Build completed with status $STATUS (not success)"
+              exit 1
+            fi
           fi
-          
-          if [ $i -lt 10 ]; then
-            echo "  Waiting 10 seconds before retry..."
-            sleep 10
+
+          if [ $i -eq 40 ]; then
+            echo "Build timed out after 10 minutes"
+            exit 1
           fi
         done
-        
-        echo "⚠️ App is not responding yet, but deployment may still be processing"
-        echo "Check logs: az webapp log tail --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group cpsu-health-assistant-rg"
+
+    - name: Wait for app to start
+      run: |
+        echo "Waiting 90 seconds for app to start after build..."
+        sleep 90
+
+    - name: Verify deployment
+      run: |
+        echo "Testing deployment..."
+
+        for i in {1..12}; do
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -m 15 \
+            "https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/api/" || echo "000")
+
+          echo "  Attempt $i/12 - HTTP $HTTP_CODE"
+
+          if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "403" ] || [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "404" ]; then
+            echo "App is responding! Deployment successful!"
+            echo "URL: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
+            exit 0
+          fi
+
+          sleep 10
+        done
+
+        echo "App not responding yet - check Azure logs"
