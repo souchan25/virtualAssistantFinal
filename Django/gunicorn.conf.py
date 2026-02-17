@@ -6,8 +6,8 @@ import os
 bind = f"0.0.0.0:{os.getenv('PORT', '8000')}"
 backlog = 2048
 
-# Worker processes
-workers = multiprocessing.cpu_count() * 2 + 1
+# Worker processes - limit to 2 on Azure B1 plan
+workers = min(multiprocessing.cpu_count() * 2 + 1, 3)
 worker_class = 'sync'
 worker_connections = 1000
 timeout = 300
