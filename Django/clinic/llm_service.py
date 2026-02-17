@@ -440,23 +440,12 @@ Keep each insight under 100 words. Be culturally sensitive to Filipino students.
     
     def validate_ml_prediction(self, symptoms: List[str], ml_prediction: str, ml_confidence: float) -> Dict:
         """
-        Use LLM (Gemini, OpenRouter, or Groq) to validate ML prediction for added accuracy
-        
-        This creates a HYBRID system: ML for fast prediction + LLM for validation
-        Cost: FREE (uses Gemini, OpenRouter Qwen 3, or Groq free tier)
-        
-        Returns:
-        {
-            'agrees_with_ml': bool,
-            'confidence_boost': float,  # 0.0-0.15 boost if agrees
-            'reasoning': str,
-            'alternative_diagnosis': str or None
-        }
+        Use LLM to validate ML prediction for added accuracy.
+        Fallback order: Cohere (globally reliable) -> Groq -> OpenRouter -> Gemini (local only)
         """
         try:
-            # Create validation prompt
-            symptoms_str = ', '.join(symptoms[:10])  # Limit to avoid token overflow
-            
+            symptoms_str = ', '.join(symptoms[:10])
+
             prompt = f"""You are a medical AI assistant validating a diagnosis prediction.
 
 PATIENT SYMPTOMS: {symptoms_str}
@@ -470,15 +459,27 @@ Your task:
 
 Respond ONLY in this exact JSON format:
 {{
-    "agrees": true/false,
+    "agrees": true,
     "confidence_adjustment": 0.0,
     "reasoning": "Brief medical reasoning (2-3 sentences)",
-    "alternative_diagnosis": "Alternative condition name or null"
+    "alternative_diagnosis": null
 }}
 
 Be concise. Focus on medical accuracy."""
 
-            # Try Groq first (fast, free tier)
+            # Try Cohere first (most globally reliable from Azure)
+            if self.cohere_client:
+                try:
+                    response = self.cohere_client.chat(message=prompt)
+                    result_text = response.text.strip()
+                    parsed = self._extract_validation_json(result_text)
+                    if parsed:
+                        self.logger.info(f"Cohere validation: agrees={parsed.get('agrees')}")
+                        return parsed
+                except Exception as e:
+                    self.logger.warning(f"Cohere validation failed: {e}, trying Groq...")
+
+            # Try Groq second (fast, but 403 from some Azure regions)
             if self.groq_client:
                 try:
                     response = self.groq_client.chat.completions.create(
@@ -486,121 +487,20 @@ Be concise. Focus on medical accuracy."""
                         messages=[{"role": "user", "content": prompt}],
                         temperature=0.3,
                         max_completion_tokens=500,
-                        top_p=0.95,
                         stream=False
                     )
-                    
                     result_text = response.choices[0].message.content
-                    
-                    # Check for empty response
-                    if not result_text or not result_text.strip():
-                        raise ValueError("Empty response from Groq API")
-                    
-                    result_text = result_text.strip()
-                    self.logger.info(f"Groq (Llama 3.1 8B Instant - FREE) validation response: {result_text[:100]}")
-                    
-                    # Extract JSON from markdown code blocks if present
-                    if '```json' in result_text:
-                        result_text = result_text.split('```json')[1].split('```')[0].strip()
-                    elif '```' in result_text:
-                        result_text = result_text.split('```')[1].split('```')[0].strip()
-                    
-                    # Try to find JSON object in response
-                    if not result_text.startswith('{'):
-                        # Look for JSON object pattern (allow nested content)
-                        json_match = re.search(r'\{[\s\S]*?"agrees"[\s\S]*?\}', result_text)
-                        if json_match:
-                            result_text = json_match.group(0)
-                    
-                    # Fix common LLM JSON errors
-                    result_text = self._fix_json_response(result_text)
-                    
-                    # Validate JSON before parsing
-                    if not result_text or not result_text.startswith('{'):
-                        raise ValueError(f"No valid JSON found in response: {result_text[:50]}")
-                    
-                    result_json = json.loads(result_text)
-                    
-                    return {
-                        'agrees_with_ml': result_json.get('agrees', True),
-                        'confidence_boost': max(-0.15, min(0.15, result_json.get('confidence_adjustment', 0.0))),
-                        'reasoning': result_json.get('reasoning', 'LLM validation completed'),
-                        'alternative_diagnosis': result_json.get('alternative_diagnosis')
-                    }
-                    
-                except Exception as groq_error:
-                    error_msg = str(groq_error)
-                    if '403' in error_msg or 'Forbidden' in error_msg:
-                        self.logger.error(f"Groq failed: Error code: 403 - Forbidden. API key may be invalid or rate limit exceeded.")
-                    elif '401' in error_msg:
-                        self.logger.error(f"Groq failed: 401 Unauthorized - Check API key")
-                    elif '429' in error_msg:
-                        self.logger.error(f"Groq failed: 429 Rate limit exceeded")
-                    else:
-                        self.logger.warning(f"Groq validation failed: {groq_error}")
-                    self.logger.info("Trying Gemini...")
-            else:
-                self.logger.info("Groq client not initialized - skipping")
-            
-            # Try Gemini second (ONLY in local development)
-            if self.gemini_client:
-                try:
-                    response = self.gemini_client.models.generate_content(
-                        model="gemini-2.5-flash-lite",
-                        contents=prompt
-                    )
-                    result_text = response.text.strip()
-                    
-                    # Extract JSON from markdown code blocks if present
-                    if '```json' in result_text:
-                        result_text = result_text.split('```json')[1].split('```')[0].strip()
-                    elif '```' in result_text:
-                        result_text = result_text.split('```')[1].split('```')[0].strip()
-                    
-                    # Try to find JSON object in response
-                    if not result_text.startswith('{'):
-                        json_match = re.search(r'\{[\s\S]*?"agrees"[\s\S]*?\}', result_text)
-                        if json_match:
-                            result_text = json_match.group(0)
-                    
-                    # Fix common LLM JSON errors
-                    result_text = self._fix_json_response(result_text)
-                    
-                    result_json = json.loads(result_text)
-                    self.logger.info(f"Gemini validation: agrees={result_json.get('agrees')}")
-                    
-                    return {
-                        'agrees_with_ml': result_json.get('agrees', True),
-                        'confidence_boost': max(-0.15, min(0.15, result_json.get('confidence_adjustment', 0.0))),
-                        'reasoning': result_json.get('reasoning', 'LLM validation completed'),
-                        'alternative_diagnosis': result_json.get('alternative_diagnosis')
-                    }
-                    
-                except Exception as gemini_error:
-                    error_msg = str(gemini_error)
-                    if 'FAILED_PRECONDITION' in error_msg or 'location is not supported' in error_msg:
-                        self.logger.error(f"Gemini failed: 400 FAILED_PRECONDITION - User location is not supported for the API use. (Geographic restriction)")
-                        # Disable Gemini for future requests
-                        self.gemini_client = None
-                    elif '400' in error_msg:
-                        self.logger.error(f"Gemini failed: 400 Bad Request - {error_msg[:150]}")
-                    else:
-                        self.logger.warning(f"Gemini validation failed: {gemini_error}")
-                    self.logger.info("Trying OpenRouter...")
-            else:
-                self.logger.info("Gemini client not available - skipping")
-            
-            # Try OpenRouter third (free model)
+                    if result_text and result_text.strip():
+                        parsed = self._extract_validation_json(result_text.strip())
+                        if parsed:
+                            self.logger.info(f"Groq validation: agrees={parsed.get('agrees_with_ml')}")
+                            return parsed
+                except Exception as e:
+                    self.logger.warning(f"Groq validation failed: {e}, trying OpenRouter...")
+
+            # Try OpenRouter third
             if self.openrouter_api_key:
                 try:
-                    # Use Llama 3.2 3B Instruct (FREE model)
-                    payload = {
-                        "model": "meta-llama/llama-3.2-3b-instruct:free",
-                        "messages": [{"role": "user", "content": prompt}],
-                        "temperature": 0.3,
-                        "max_tokens": 500
-                    }
-                    
                     response = requests.post(
                         url="https://openrouter.ai/api/v1/chat/completions",
                         headers={
@@ -609,93 +509,49 @@ Be concise. Focus on medical accuracy."""
                             "HTTP-Referer": "https://cpsu-health-assistant.edu.ph",
                             "X-Title": "CPSU Virtual Health Assistant",
                         },
-                        json=payload,  # Use json parameter instead of data=json.dumps()
+                        json={
+                            "model": "meta-llama/llama-3.2-3b-instruct:free",
+                            "messages": [{"role": "user", "content": prompt}],
+                            "temperature": 0.3,
+                            "max_tokens": 500
+                        },
                         timeout=30
                     )
-                    
                     if response.status_code == 200:
-                        response_json = response.json()
-                        result_text = response_json['choices'][0]['message']['content']
-                        
-                        # Check for empty response
-                        if not result_text or not result_text.strip():
-                            raise ValueError("Empty response from OpenRouter API")
-                        
-                        result_text = result_text.strip()
-                        
-                        # Extract JSON from markdown code blocks if present
-                        if '```json' in result_text:
-                            result_text = result_text.split('```json')[1].split('```')[0].strip()
-                        elif '```' in result_text:
-                            result_text = result_text.split('```')[1].split('```')[0].strip()
-                        
-                        # Try to find JSON object in response
-                        if not result_text.startswith('{'):
-                            json_match = re.search(r'\{[\s\S]*?"agrees"[\s\S]*?\}', result_text)
-                            if json_match:
-                                result_text = json_match.group(0)
-                        
-                        # Fix common LLM JSON errors
-                        result_text = self._fix_json_response(result_text)
-                        
-                        # Validate JSON before parsing
-                        if not result_text or not result_text.startswith('{'):
-                            raise ValueError(f"No valid JSON found in response: {result_text[:50]}")
-                        
-                        result_json = json.loads(result_text)
-                        self.logger.info(f"OpenRouter (Mistral) validation: agrees={result_json.get('agrees')}")
-                        
-                        return {
-                            'agrees_with_ml': result_json.get('agrees', True),
-                            'confidence_boost': max(-0.15, min(0.15, result_json.get('confidence_adjustment', 0.0))),
-                            'reasoning': result_json.get('reasoning', 'LLM validation completed'),
-                            'alternative_diagnosis': result_json.get('alternative_diagnosis')
-                        }
+                        result_text = response.json()['choices'][0]['message']['content']
+                        if result_text and result_text.strip():
+                            parsed = self._extract_validation_json(result_text.strip())
+                            if parsed:
+                                self.logger.info(f"OpenRouter validation: agrees={parsed.get('agrees_with_ml')}")
+                                return parsed
                     else:
-                        self.logger.error(f"OpenRouter failed with status {response.status_code}: {response.text[:200]}")
-                        
-                except Exception as openrouter_error:
-                    self.logger.warning(f"OpenRouter validation failed: {openrouter_error}")
-                    self.logger.info("Trying Cohere...")
-            else:
-                self.logger.info("OpenRouter API key not configured - skipping")
-            
-            # Try Cohere last
-            if self.cohere_client:
-                try:
-                    # Cohere doesn't support structured JSON, so use simple text parsing
-                    simplified_prompt = f"""Given symptoms: {symptoms_str}
-ML predicted: {ml_prediction} ({ml_confidence:.0%})
+                        self.logger.warning(f"OpenRouter returned {response.status_code}")
+                except Exception as e:
+                    self.logger.warning(f"OpenRouter validation failed: {e}")
 
-Do you agree with this prediction? Answer: yes/no and brief reason."""
-                    
-                    response = self.cohere_client.chat(
-                        message=simplified_prompt
+            # Try Gemini last (local dev only)
+            if self.gemini_client:
+                try:
+                    response = self.gemini_client.models.generate_content(
+                        model="gemini-2.5-flash-lite",
+                        contents=prompt
                     )
-                    
-                    result_text = response.text.lower()
-                    agrees = 'yes' in result_text or 'agree' in result_text or 'correct' in result_text
-                    
-                    self.logger.info(f"Cohere validation: agrees={agrees}")
-                    
-                    return {
-                        'agrees_with_ml': agrees,
-                        'confidence_boost': 0.05 if agrees else -0.05,
-                        'reasoning': response.text[:200],
-                        'alternative_diagnosis': None
-                    }
-                    
-                except Exception as cohere_error:
-                    self.logger.error(f"Cohere validation failed: {cohere_error}")
-            
-            # If all LLMs fail, return neutral validation
+                    parsed = self._extract_validation_json(response.text.strip())
+                    if parsed:
+                        self.logger.info(f"Gemini validation: agrees={parsed.get('agrees_with_ml')}")
+                        return parsed
+                except Exception as e:
+                    if 'FAILED_PRECONDITION' in str(e) or 'location is not supported' in str(e):
+                        self.gemini_client = None
+                    self.logger.warning(f"Gemini validation failed: {e}")
+
             return {
                 'agrees_with_ml': True,
                 'confidence_boost': 0.0,
                 'reasoning': 'LLM validation unavailable, using ML prediction only',
                 'alternative_diagnosis': None
             }
-            
+
         except Exception as e:
             self.logger.error(f"LLM validation error: {e}")
             return {
@@ -704,4 +560,32 @@ Do you agree with this prediction? Answer: yes/no and brief reason."""
                 'reasoning': f'Validation error: {str(e)}',
                 'alternative_diagnosis': None
             }
+
+    def _extract_validation_json(self, text: str) -> Dict:
+        """Extract and parse validation JSON from LLM response text."""
+        try:
+            if '```json' in text:
+                text = text.split('```json')[1].split('```')[0].strip()
+            elif '```' in text:
+                text = text.split('```')[1].split('```')[0].strip()
+
+            if not text.startswith('{'):
+                json_match = re.search(r'\{[\s\S]*?"agrees"[\s\S]*?\}', text)
+                if json_match:
+                    text = json_match.group(0)
+
+            text = self._fix_json_response(text)
+            if not text or not text.startswith('{'):
+                return None
+
+            result = json.loads(text)
+            return {
+                'agrees_with_ml': result.get('agrees', True),
+                'confidence_boost': max(-0.15, min(0.15, result.get('confidence_adjustment', 0.0))),
+                'reasoning': result.get('reasoning', 'LLM validation completed'),
+                'alternative_diagnosis': result.get('alternative_diagnosis')
+            }
+        except (json.JSONDecodeError, ValueError, KeyError) as e:
+            self.logger.warning(f"JSON parse failed: {e}")
+            return None
 

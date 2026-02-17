@@ -212,11 +212,23 @@ CORS_ALLOW_HEADERS = [
 ]
 
 # ML Model settings
-# On Azure, ML files are at /home/site/wwwroot/ML/
-# Locally, they're at BASE_DIR.parent / 'ML'
-_azure_ml_base = Path('/home/site/wwwroot/ML')
-_local_ml_base = BASE_DIR.parent / 'ML'
-_ml_base = _azure_ml_base if _azure_ml_base.exists() else _local_ml_base
+# Check multiple possible locations for ML files
+_ml_base = None
+_ml_candidates = [
+    Path(os.getenv('ML_BASE_PATH', '')),         # env var override
+    Path('/home/site/wwwroot/ML'),                # Azure persistent storage
+    BASE_DIR / 'ML',                              # co-deployed with Django
+    BASE_DIR.parent / 'ML',                       # sibling to Django (local dev)
+]
+for _p in _ml_candidates:
+    if str(_p) and str(_p) != '.' and _p.exists():
+        _ml_base = _p
+        break
+if _ml_base is None:
+    _ml_base = BASE_DIR.parent / 'ML'
+    print(f"[WARNING] ML base not found in any candidate path, defaulting to {_ml_base}")
+else:
+    print(f"[OK] ML base found at {_ml_base}")
 
 ML_MODEL_PATH = _ml_base / 'models' / 'disease_predictor_v2.pkl'
 ML_DATASETS_PATH = _ml_base / 'Datasets' / 'active'
