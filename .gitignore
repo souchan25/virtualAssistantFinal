@@ -28,6 +28,42 @@ htmlcov/
 .tox/
 .hypothesis/
 
+# Secrets / credentials
+*.env
+*.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*publish-profile*.xml
+
+# Temporary archives / logs
+*.zip
+*.tar
+*.tar.gz
+*.log
+latest-logs.zip
+webapp-logs.zip
+ml-package.zip
+django-deploy*.zip
+django-deploy*.tar.gz
+
+# Local cleanup/archive folders
+cleanup_archive/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.cursor/
+
 # ===================================
 # Django
 # ===================================
