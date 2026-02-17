@@ -50,16 +50,21 @@ class AIInsightGenerator:
         self.logger = logging.getLogger(__name__)
         self._initialized = True
         
-        # Initialize Gemini with new API
+        # Check if we're in a production environment (Azure)
+        self.is_production = os.getenv('WEBSITE_SITE_NAME') is not None  # Azure App Service indicator
+        
+        # Initialize Gemini with new API (SKIP in production due to geographic restrictions)
         self.gemini_client = None
         
-        if GEMINI_AVAILABLE and settings.GEMINI_API_KEY:
+        if not self.is_production and GEMINI_AVAILABLE and settings.GEMINI_API_KEY:
             try:
                 self.gemini_client = genai.Client(api_key=settings.GEMINI_API_KEY)
-                self.logger.info("Gemini AI initialized successfully (new API)")
+                self.logger.info("Gemini AI initialized successfully (new API) - Local development only")
             except Exception as e:
                 self.logger.error(f"Gemini initialization failed: {e}")
                 self.gemini_client = None
+        elif self.is_production:
+            self.logger.info("Gemini DISABLED in production (geographic restrictions)")
         else:
             self.logger.warning("Gemini not available - check API key or install google-genai")
         
@@ -152,9 +157,65 @@ Guidelines:
 - Be culturally sensitive to Filipino students
 - Never diagnose - only provide general health information"""
         
-        # Fallback chain: Groq → Gemini → OpenRouter → Cohere
+        # Fallback chain: Cohere → OpenRouter → Groq (Gemini disabled in production)
+        # Cohere is most reliable for global deployments
         
-        # Try Groq first (fast, free tier)
+        # Try Cohere first (most reliable globally)
+        if self.cohere_client:
+            try:
+                response = self.cohere_client.chat(
+                    message=message,
+                    preamble=system_prompt
+                )
+                self.logger.info("Response from Cohere")
+                return response.text
+            except Exception as e:
+                self.logger.warning(f"Cohere failed: {e}, trying OpenRouter...")
+        else:
+            self.logger.info("Cohere client not initialized - skipping")
+        
+        # Try OpenRouter second (free models available)
+        if self.openrouter_api_key:
+            try:
+                # Use Llama 3.2 3B Instruct (FREE model)
+                payload = {
+                    "model": "meta-llama/llama-3.2-3b-instruct:free",
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": message}
+                    ],
+                    "temperature": 0.6,
+                    "max_tokens": 500
+                }
+                
+                response = requests.post(
+                    url="https://openrouter.ai/api/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self.openrouter_api_key}",
+                        "Content-Type": "application/json",
+                        "HTTP-Referer": "https://cpsu-health-assistant.edu.ph",
+                        "X-Title": "CPSU Virtual Health Assistant",
+                    },
+                    json=payload,
+                    timeout=30
+                )
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    content = result['choices'][0]['message']['content']
+                    if content and content.strip():
+                        self.logger.info("Response from OpenRouter (Llama 3.2 3B Free)")
+                        return content
+                    else:
+                        raise ValueError("Empty response from OpenRouter")
+                else:
+                    self.logger.error(f"OpenRouter failed with status {response.status_code}: {response.text[:200]}")
+            except Exception as e:
+                self.logger.warning(f"OpenRouter failed: {e}, trying Groq...")
+        else:
+            self.logger.info("OpenRouter API key not configured - skipping")
+        
+        # Try Groq third (fast, free tier)
         if self.groq_client:
             try:
                 response = self.groq_client.chat.completions.create(
@@ -174,9 +235,19 @@ Guidelines:
                 else:
                     raise ValueError("Empty response from Groq")
             except Exception as e:
-                self.logger.warning(f"Groq failed: {e}, trying Gemini...")
+                error_msg = str(e)
+                if '403' in error_msg or 'Forbidden' in error_msg:
+                    self.logger.error(f"Groq failed: 403 Forbidden - Invalid API key or rate limit exceeded")
+                elif '401' in error_msg:
+                    self.logger.error(f"Groq failed: 401 Unauthorized - Check API key")
+                elif '429' in error_msg:
+                    self.logger.error(f"Groq failed: 429 Rate limit exceeded")
+                else:
+                    self.logger.warning(f"Groq failed: {error_msg}, trying Gemini...")
+        else:
+            self.logger.info("Groq client not initialized - skipping")
         
-        # Try Gemini second
+        # Try Gemini second (ONLY in local development)
         if self.gemini_client:
             try:
                 prompt = f"{system_prompt}\n\nUser message: {message}"
@@ -190,61 +261,20 @@ Guidelines:
                 self.logger.info("Response from Gemini 2.5 Flash")
                 return response.text
             except Exception as e:
-                self.logger.warning(f"Gemini failed: {e}, trying OpenRouter...")
-        
-        # Try OpenRouter third
-        if self.openrouter_api_key:
-            try:
-                # Prepare payload - json parameter will properly escape all special characters
-                payload = {
-                    "model": "mistralai/devstral-2512:free",
-                    "messages": [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": message}
-                    ],
-                    "temperature": 0.6,
-                    "max_tokens": 500
-                }
-                
-                response = requests.post(
-                    url="https://openrouter.ai/api/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {self.openrouter_api_key}",
-                        "Content-Type": "application/json",
-                        "HTTP-Referer": "https://cpsu-health-assistant.edu.ph",
-                        "X-Title": "CPSU Virtual Health Assistant",
-                    },
-                    json=payload,  # Use json parameter instead of data=json.dumps()
-                    timeout=30
-                )
-                
-                if response.status_code == 200:
-                    result = response.json()
-                    content = result['choices'][0]['message']['content']
-                    if content and content.strip():
-                        self.logger.info("Response from OpenRouter (Mistral Devstral)")
-                        return content
-                    else:
-                        raise ValueError("Empty response from OpenRouter")
+                error_msg = str(e)
+                if 'FAILED_PRECONDITION' in error_msg or 'location is not supported' in error_msg:
+                    self.logger.error(f"Gemini failed: Geographic restriction - User location not supported")
+                    # Disable Gemini for future requests in this session
+                    self.gemini_client = None
+                elif '400' in error_msg:
+                    self.logger.error(f"Gemini failed: 400 Bad Request - {error_msg[:100]}")
                 else:
-                    self.logger.warning(f"OpenRouter failed with status {response.status_code}, trying Cohere...")
-            except Exception as e:
-                self.logger.warning(f"OpenRouter failed: {e}, trying Cohere...")
+                    self.logger.warning(f"Gemini failed: {e}, trying OpenRouter...")
+        else:
+            self.logger.info("Gemini client not available - skipping")
         
-        # Try Cohere last
-        if self.cohere_client:
-            try:
-                response = self.cohere_client.chat(
-                    message=message,
-                    preamble=system_prompt
-                )
-                self.logger.info("Response from Cohere")
-                return response.text
-            except Exception as e:
-                self.logger.error(f"Cohere failed: {e}")
-        
-        # Ultimate fallback
-        return "Thank you for your message. Based on your symptoms, I recommend consulting with our clinic staff for proper evaluation."
+        # Ultimate fallback message if all providers fail
+        return "Thank you for your message. I'm currently experiencing technical issues with AI services. Please consult with our clinic staff for proper evaluation."
     
     def generate_health_insights(self, symptoms: list, predictions: dict, chat_summary: str = None) -> list:
         """
@@ -276,36 +306,21 @@ Respond ONLY with a JSON array in this exact format:
 
 Keep each insight under 100 words. Be culturally sensitive to Filipino students."""
 
-        # Try providers in order: Groq → Gemini → OpenRouter → Cohere
+        # Try providers in order: Cohere → OpenRouter → Groq (Gemini disabled in production)
         insights_text = None
         
-        # Try Groq first
-        if self.groq_client:
+        # Try Cohere first (most reliable)
+        if self.cohere_client:
             try:
-                response = self.groq_client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.5,
-                    max_tokens=800
-                )
-                insights_text = response.choices[0].message.content
-                self.logger.info("Health insights from Groq")
-            except Exception as e:
-                self.logger.warning(f"Groq insights failed: {e}")
-        
-        # Try Gemini second
-        if not insights_text and self.gemini_client:
-            try:
-                response = self.gemini_client.models.generate_content(
-                    model="gemini-2.5-flash-lite",
-                    contents=prompt
+                response = self.cohere_client.chat(
+                    message=prompt
                 )
                 insights_text = response.text
-                self.logger.info("Health insights from Gemini")
+                self.logger.info("Health insights from Cohere")
             except Exception as e:
-                self.logger.warning(f"Gemini insights failed: {e}")
+                self.logger.warning(f"Cohere insights failed: {e}")
         
-        # Try OpenRouter third
+        # Try OpenRouter second (free model)
         if not insights_text and self.openrouter_api_key:
             try:
                 response = requests.post(
@@ -315,7 +330,7 @@ Keep each insight under 100 words. Be culturally sensitive to Filipino students.
                         "Content-Type": "application/json",
                     },
                     json={
-                        "model": "mistralai/devstral-2512:free",
+                        "model": "meta-llama/llama-3.2-3b-instruct:free",
                         "messages": [{"role": "user", "content": prompt}],
                         "temperature": 0.5,
                         "max_tokens": 800
@@ -328,16 +343,31 @@ Keep each insight under 100 words. Be culturally sensitive to Filipino students.
             except Exception as e:
                 self.logger.warning(f"OpenRouter insights failed: {e}")
         
-        # Try Cohere last
-        if not insights_text and self.cohere_client:
+        # Try Groq third
+        if not insights_text and self.groq_client:
             try:
-                response = self.cohere_client.chat(
-                    message=prompt
+                response = self.groq_client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.5,
+                    max_tokens=800
+                )
+                insights_text = response.choices[0].message.content
+                self.logger.info("Health insights from Groq")
+            except Exception as e:
+                self.logger.warning(f"Groq insights failed: {e}")
+        
+        # Try Gemini last (ONLY in local development)
+        if not insights_text and self.gemini_client:
+            try:
+                response = self.gemini_client.models.generate_content(
+                    model="gemini-2.5-flash-lite",
+                    contents=prompt
                 )
                 insights_text = response.text
-                self.logger.info("Health insights from Cohere")
+                self.logger.info("Health insights from Gemini")
             except Exception as e:
-                self.logger.warning(f"Cohere insights failed: {e}")
+                self.logger.warning(f"Gemini insights failed: {e}")
         
         # Parse LLM response into structured insights
         if insights_text:
@@ -496,9 +526,20 @@ Be concise. Focus on medical accuracy."""
                     }
                     
                 except Exception as groq_error:
-                    self.logger.warning(f"Groq validation failed, trying Gemini: {groq_error}")
+                    error_msg = str(groq_error)
+                    if '403' in error_msg or 'Forbidden' in error_msg:
+                        self.logger.error(f"Groq failed: Error code: 403 - Forbidden. API key may be invalid or rate limit exceeded.")
+                    elif '401' in error_msg:
+                        self.logger.error(f"Groq failed: 401 Unauthorized - Check API key")
+                    elif '429' in error_msg:
+                        self.logger.error(f"Groq failed: 429 Rate limit exceeded")
+                    else:
+                        self.logger.warning(f"Groq validation failed: {groq_error}")
+                    self.logger.info("Trying Gemini...")
+            else:
+                self.logger.info("Groq client not initialized - skipping")
             
-            # Try Gemini second
+            # Try Gemini second (ONLY in local development)
             if self.gemini_client:
                 try:
                     response = self.gemini_client.models.generate_content(
@@ -533,14 +574,25 @@ Be concise. Focus on medical accuracy."""
                     }
                     
                 except Exception as gemini_error:
-                    self.logger.warning(f"Gemini validation failed, trying OpenRouter: {gemini_error}")
+                    error_msg = str(gemini_error)
+                    if 'FAILED_PRECONDITION' in error_msg or 'location is not supported' in error_msg:
+                        self.logger.error(f"Gemini failed: 400 FAILED_PRECONDITION - User location is not supported for the API use. (Geographic restriction)")
+                        # Disable Gemini for future requests
+                        self.gemini_client = None
+                    elif '400' in error_msg:
+                        self.logger.error(f"Gemini failed: 400 Bad Request - {error_msg[:150]}")
+                    else:
+                        self.logger.warning(f"Gemini validation failed: {gemini_error}")
+                    self.logger.info("Trying OpenRouter...")
+            else:
+                self.logger.info("Gemini client not available - skipping")
             
-            # Try OpenRouter third
+            # Try OpenRouter third (free model)
             if self.openrouter_api_key:
                 try:
-                    # Prepare payload - json.dumps will properly escape all special characters
+                    # Use Llama 3.2 3B Instruct (FREE model)
                     payload = {
-                        "model": "mistralai/devstral-2512:free",
+                        "model": "meta-llama/llama-3.2-3b-instruct:free",
                         "messages": [{"role": "user", "content": prompt}],
                         "temperature": 0.3,
                         "max_tokens": 500
@@ -597,10 +649,13 @@ Be concise. Focus on medical accuracy."""
                             'alternative_diagnosis': result_json.get('alternative_diagnosis')
                         }
                     else:
-                        self.logger.warning(f"OpenRouter failed with status {response.status_code}, trying Cohere...")
+                        self.logger.error(f"OpenRouter failed with status {response.status_code}: {response.text[:200]}")
                         
                 except Exception as openrouter_error:
-                    self.logger.warning(f"OpenRouter validation failed, trying Cohere: {openrouter_error}")
+                    self.logger.warning(f"OpenRouter validation failed: {openrouter_error}")
+                    self.logger.info("Trying Cohere...")
+            else:
+                self.logger.info("OpenRouter API key not configured - skipping")
             
             # Try Cohere last
             if self.cohere_client:
