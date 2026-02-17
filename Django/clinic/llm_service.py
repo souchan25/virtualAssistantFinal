@@ -219,18 +219,19 @@ Guidelines:
         if self.groq_client:
             try:
                 response = self.groq_client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
+                    model="llama-3.1-8b-instant",
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": message}
                     ],
                     temperature=0.6,
-                    max_tokens=1024,
-                    top_p=0.95
+                    max_completion_tokens=1024,
+                    top_p=0.95,
+                    stream=False
                 )
                 result = response.choices[0].message.content
                 if result and result.strip():
-                    self.logger.info("Response from Groq (Llama 3.3 70B)")
+                    self.logger.info("Response from Groq (Llama 3.1 8B Instant - FREE)")
                     return result
                 else:
                     raise ValueError("Empty response from Groq")
@@ -347,13 +348,14 @@ Keep each insight under 100 words. Be culturally sensitive to Filipino students.
         if not insights_text and self.groq_client:
             try:
                 response = self.groq_client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
+                    model="llama-3.1-8b-instant",
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.5,
-                    max_tokens=800
+                    max_completion_tokens=800,
+                    stream=False
                 )
                 insights_text = response.choices[0].message.content
-                self.logger.info("Health insights from Groq")
+                self.logger.info("Health insights from Groq (Llama 3.1 8B - FREE)")
             except Exception as e:
                 self.logger.warning(f"Groq insights failed: {e}")
         
@@ -480,11 +482,12 @@ Be concise. Focus on medical accuracy."""
             if self.groq_client:
                 try:
                     response = self.groq_client.chat.completions.create(
-                        model="llama-3.3-70b-versatile",
+                        model="llama-3.1-8b-instant",
                         messages=[{"role": "user", "content": prompt}],
                         temperature=0.3,
-                        max_tokens=500,
-                        top_p=0.95
+                        max_completion_tokens=500,
+                        top_p=0.95,
+                        stream=False
                     )
                     
                     result_text = response.choices[0].message.content
@@ -494,7 +497,7 @@ Be concise. Focus on medical accuracy."""
                         raise ValueError("Empty response from Groq API")
                     
                     result_text = result_text.strip()
-                    self.logger.info(f"Groq (Llama 3.3 70B) validation response: {result_text[:100]}")
+                    self.logger.info(f"Groq (Llama 3.1 8B Instant - FREE) validation response: {result_text[:100]}")
                     
                     # Extract JSON from markdown code blocks if present
                     if '```json' in result_text:
