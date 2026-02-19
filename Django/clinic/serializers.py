@@ -299,28 +299,65 @@ class FollowUpSerializer(serializers.ModelSerializer):
     symptom_disease = serializers.CharField(source='symptom_record.predicted_disease', read_only=True)
     is_overdue = serializers.SerializerMethodField()
     days_until_due = serializers.SerializerMethodField()
-    
+
+    # Field aliases so the frontend field names match the model
+    staff_notes = serializers.CharField(source='review_notes', read_only=True)
+    student_response = serializers.CharField(source='notes', read_only=True)
+    original_condition = serializers.CharField(source='symptom_record.predicted_disease', read_only=True)
+    completed_at = serializers.DateTimeField(source='updated_at', read_only=True)
+    reviewed_at = serializers.DateTimeField(source='updated_at', read_only=True)
+
+    # Full symptom record details for the modal
+    symptom_details = serializers.SerializerMethodField()
+
     class Meta:
         model = FollowUp
         fields = [
             'id', 'symptom_record', 'student', 'student_name', 'student_school_id',
-            'symptom_disease', 'scheduled_date', 'status', 'response_date',
-            'outcome', 'notes', 'still_experiencing_symptoms', 'new_symptoms',
-            'requires_appointment', 'review_notes', 'is_overdue', 'days_until_due',
-            'created_at'
+            'symptom_disease', 'original_condition', 'scheduled_date', 'status',
+            'response_date', 'outcome',
+            'notes', 'student_response',
+            'still_experiencing_symptoms', 'new_symptoms',
+            'requires_appointment',
+            'review_notes', 'staff_notes',
+            'reviewed_at', 'completed_at',
+            'is_overdue', 'days_until_due',
+            'symptom_details',
+            'created_at',
         ]
         read_only_fields = ['id', 'student', 'created_at']
-    
+
     def get_is_overdue(self, obj):
-        """Check if follow-up is overdue"""
         from datetime import date
         return obj.status == 'pending' and obj.scheduled_date < date.today()
-    
+
     def get_days_until_due(self, obj):
-        """Calculate days until due (negative if overdue)"""
         from datetime import date
         delta = obj.scheduled_date - date.today()
         return delta.days
+
+    def get_symptom_details(self, obj):
+        """Return full symptom record details for the review modal."""
+        sr = obj.symptom_record
+        if not sr:
+            return None
+        return {
+            'id': str(sr.id),
+            'symptoms': sr.symptoms or [],
+            'duration_days': sr.duration_days,
+            'severity': sr.severity,
+            'predicted_disease': sr.predicted_disease,
+            'confidence_score': sr.confidence_score,
+            'top_predictions': sr.top_predictions or [],
+            'is_communicable': sr.is_communicable,
+            'is_acute': sr.is_acute,
+            'icd10_code': sr.icd10_code,
+            'requires_referral': sr.requires_referral,
+            'staff_diagnosis': sr.staff_diagnosis,
+            'final_diagnosis': sr.final_diagnosis,
+            'on_medication': sr.on_medication,
+            'created_at': sr.created_at.isoformat() if sr.created_at else None,
+        }
 
 
 class FollowUpResponseSerializer(serializers.Serializer):

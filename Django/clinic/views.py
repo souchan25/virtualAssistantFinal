@@ -1774,9 +1774,9 @@ def followup_needs_review(request):
     GET /api/followups/needs-review/
     """
     # Return all follow-ups; frontend filters for counts
-    followups = FollowUp.objects.select_related('student', 'reviewed_by')\
+    followups = FollowUp.objects.select_related('student', 'reviewed_by', 'symptom_record')\
         .order_by('-scheduled_date')
-    
+
     # Enrich with student data
     data = []
     for followup in followups:
@@ -1786,7 +1786,7 @@ def followup_needs_review(request):
         followup_data['student_department'] = followup.student.department
         followup_data['reviewed_by_name'] = followup.reviewed_by.name if followup.reviewed_by else None
         data.append(followup_data)
-    
+
     return Response(data)
 
 

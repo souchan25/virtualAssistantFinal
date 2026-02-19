@@ -766,15 +766,16 @@ A student said: "{message}"
 Detected symptoms so far: {symptoms_str}
 
 Before making a diagnosis, ask the student 1-2 SHORT, specific follow-up questions to better understand their condition.
-The questions should be directly relevant to the detected symptoms.
+You MUST always ask how many days they have had these symptoms (for accurate record-keeping).
+The second question should be directly relevant to the detected symptoms.
 
 Examples of good follow-up questions:
-- For cough: "Is it a dry cough or do you have phlegm (mucus)? And how many days have you had it?"
-- For stomach/acid issues: "Have you had soft drinks, spicy food, or skipped meals recently?"
-- For headache: "Is the pain throbbing or constant, and does light or noise make it worse?"
-- For fever: "Do you also have chills or body pain, and have you taken any medicine for it?"
+- For cough: "How many days have you had these symptoms? And is it a dry cough or do you have phlegm (mucus)?"
+- For stomach/acid issues: "How many days have you felt this way? Have you had soft drinks, spicy food, or skipped meals recently?"
+- For headache: "How many days have you had this headache? Is the pain throbbing or constant?"
+- For fever: "How many days have you had the fever? Do you also have chills or body pain?"
 
-Write a warm, empathetic opening (1 sentence acknowledging their symptoms), then ask your 1-2 follow-up questions.
+Write a warm, empathetic opening (1 sentence acknowledging their symptoms), then ask your questions.
 Keep the entire response under 80 words. Do NOT give a diagnosis yet. Do NOT use markdown."""
 
         # Try Cohere first (primary for chat)
