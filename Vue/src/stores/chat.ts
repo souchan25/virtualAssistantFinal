@@ -7,6 +7,7 @@ export const useChatStore = defineStore('chat', () => {
   // State
   const messages = ref<ChatMessage[]>([])
   const sessionId = ref<string | null>(null)
+  const lastRecordId = ref<string | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
 
@@ -18,6 +19,7 @@ export const useChatStore = defineStore('chat', () => {
     try {
       const response = await api.post('/chat/start/')
       sessionId.value = response.data.session_id
+      lastRecordId.value = null
       messages.value = []
       return response.data
     } catch (err: any) {
@@ -46,10 +48,20 @@ export const useChatStore = defineStore('chat', () => {
     error.value = null
     
     try {
-      const response = await api.post('/chat/message/', {
+      const payload: any = {
         message,
         session_id: sessionId.value
-      })
+      }
+      if (lastRecordId.value) {
+        payload.record_id = lastRecordId.value
+      }
+
+      const response = await api.post('/chat/message/', payload)
+
+      // Track the record_id for follow-up answer updates
+      if (response.data.record_id) {
+        lastRecordId.value = response.data.record_id
+      }
       
       // Add bot response
       const botMessage: ChatMessage = {
@@ -91,17 +103,20 @@ export const useChatStore = defineStore('chat', () => {
       console.error('Error ending session:', err)
     } finally {
       sessionId.value = null
+      lastRecordId.value = null
       messages.value = []
     }
   }
 
   function clearMessages() {
     messages.value = []
+    lastRecordId.value = null
   }
 
   return {
     messages,
     sessionId,
+    lastRecordId,
     loading,
     error,
     startSession,

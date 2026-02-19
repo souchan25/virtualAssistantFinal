@@ -83,14 +83,20 @@
           <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4 mb-4">
             <div class="flex-1 min-w-0">
               <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2 flex-wrap">
-                <h3 class="text-lg sm:text-xl font-bold text-cpsu-green truncate">{{ record.predicted_disease }}</h3>
+                <h3 class="text-lg sm:text-xl font-bold text-cpsu-green truncate">{{ record.staff_diagnosis || record.predicted_disease }}</h3>
                 <span class="px-2 sm:px-3 py-1 bg-cpsu-green text-white text-xs sm:text-sm rounded-full whitespace-nowrap">
                   {{ getConfidence(record) }}% confidence
                 </span>
-                <span v-if="record.llm_validated" class="px-2 sm:px-3 py-1 bg-blue-100 text-blue-800 text-xs sm:text-sm rounded-full whitespace-nowrap">
+                <span v-if="record.staff_diagnosis" class="px-2 sm:px-3 py-1 bg-blue-100 text-blue-800 text-xs sm:text-sm rounded-full whitespace-nowrap">
+                  ✏️ Staff Verified
+                </span>
+                <span v-else-if="record.llm_validated" class="px-2 sm:px-3 py-1 bg-blue-100 text-blue-800 text-xs sm:text-sm rounded-full whitespace-nowrap">
                   ✅ AI Validated
                 </span>
               </div>
+              <p v-if="record.staff_diagnosis" class="text-xs text-gray-500 mb-1">
+                AI Prediction: {{ record.predicted_disease }}
+              </p>
               <p class="text-xs sm:text-sm text-gray-500">
                 {{ new Date(record.created_at).toLocaleString() }}
               </p>

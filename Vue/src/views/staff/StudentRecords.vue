@@ -200,8 +200,24 @@
                   class="border-l-4 border-cpsu-green bg-gray-50 p-4"
                 >
                   <div class="flex justify-between items-start mb-2">
-                    <h4 class="font-semibold text-gray-900">{{ report.predicted_disease }}</h4>
-                    <span class="text-sm text-gray-600">{{ formatDate(report.created_at) }}</span>
+                    <div>
+                      <h4 class="font-semibold text-gray-900">
+                        {{ report.staff_diagnosis || report.predicted_disease }}
+                      </h4>
+                      <p v-if="report.staff_diagnosis" class="text-xs text-blue-600">
+                        Staff corrected (AI: {{ report.predicted_disease }})
+                      </p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm text-gray-600">{{ formatDate(report.created_at) }}</span>
+                      <button
+                        @click.stop="openEditDiagnosis(report)"
+                        class="text-xs px-2 py-1 bg-cpsu-green text-white rounded hover:bg-cpsu-green-dark transition-colors"
+                        title="Edit Diagnosis"
+                      >
+                        ✏️ Edit
+                      </button>
+                    </div>
                   </div>
                   <p class="text-sm text-gray-700 mb-2">
                     <strong>Symptoms:</strong> {{ report.symptoms?.join(', ') || 'N/A' }}
@@ -243,6 +259,58 @@
           </div>
         </div>
       </div>
+
+      <!-- Edit Diagnosis Modal -->
+      <div v-if="editingReport" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" @click="editingReport = null">
+        <div class="bg-white rounded-lg max-w-lg w-full" @click.stop>
+          <div class="bg-cpsu-green text-white p-5 rounded-t-lg">
+            <h2 class="text-xl font-bold">Edit Final Diagnosis</h2>
+            <p class="text-sm opacity-90">{{ editingReport.predicted_disease }}</p>
+          </div>
+
+          <div class="p-6">
+            <!-- Current Info -->
+            <div class="mb-4 bg-gray-50 rounded-lg p-4 text-sm">
+              <p><strong>AI Prediction:</strong> {{ editingReport.predicted_disease }}</p>
+              <p><strong>Symptoms:</strong> {{ editingReport.symptoms?.join(', ') || 'N/A' }}</p>
+              <p><strong>Confidence:</strong> {{ editingReport.confidence ? (editingReport.confidence * 100).toFixed(1) + '%' : 'N/A' }}</p>
+            </div>
+
+            <!-- Staff Diagnosis Input -->
+            <div class="mb-6">
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Staff Final Diagnosis
+              </label>
+              <input
+                v-model="newDiagnosis"
+                type="text"
+                class="input-field w-full"
+                placeholder="Enter corrected diagnosis..."
+              />
+              <p class="text-xs text-gray-500 mt-1">
+                This will override the AI prediction as the final diagnosis.
+              </p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-4">
+              <button
+                @click="submitDiagnosisEdit"
+                :disabled="diagnosisSubmitting || !newDiagnosis.trim()"
+                class="btn-primary flex-1"
+              >
+                <span v-if="diagnosisSubmitting">Saving...</span>
+                <span v-else>Save Diagnosis</span>
+              </button>
+              <button @click="editingReport = null" class="btn-outline flex-1">Cancel</button>
+            </div>
+
+            <!-- Success/Error Messages -->
+            <p v-if="diagnosisSuccess" class="mt-3 text-sm text-green-600 font-medium">Diagnosis updated successfully!</p>
+            <p v-if="diagnosisError" class="mt-3 text-sm text-red-600 font-medium">{{ diagnosisError }}</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -259,6 +327,13 @@ const students = ref<any[]>([])
 const selectedStudent = ref<any>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
+
+// Edit Diagnosis State
+const editingReport = ref<any>(null)
+const newDiagnosis = ref('')
+const diagnosisSubmitting = ref(false)
+const diagnosisSuccess = ref(false)
+const diagnosisError = ref<string | null>(null)
 
 // Filters
 const searchQuery = ref('')
@@ -323,6 +398,37 @@ const prescribeMedication = (student: any) => {
     name: 'staff-prescribe',
     query: { student_id: student.school_id }
   })
+}
+
+const openEditDiagnosis = (report: any) => {
+  editingReport.value = report
+  newDiagnosis.value = report.staff_diagnosis || ''
+  diagnosisSuccess.value = false
+  diagnosisError.value = null
+}
+
+const submitDiagnosisEdit = async () => {
+  if (!newDiagnosis.value.trim() || !editingReport.value) return
+
+  diagnosisSubmitting.value = true
+  diagnosisSuccess.value = false
+  diagnosisError.value = null
+
+  try {
+    await api.patch(`/symptoms/${editingReport.value.id}/diagnosis/`, {
+      staff_diagnosis: newDiagnosis.value.trim()
+    })
+    editingReport.value.staff_diagnosis = newDiagnosis.value.trim()
+    diagnosisSuccess.value = true
+    setTimeout(() => {
+      editingReport.value = null
+    }, 1200)
+  } catch (err: any) {
+    diagnosisError.value = err.response?.data?.error || 'Failed to update diagnosis'
+    console.error('Error updating diagnosis:', err)
+  } finally {
+    diagnosisSubmitting.value = false
+  }
 }
 
 const formatDate = (dateStr: string | null | undefined) => {

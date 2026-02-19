@@ -453,7 +453,7 @@
     </section>
 
     <!-- Meet the Team Section -->
-    <!-- <section class="py-20 bg-gradient-to-br from-cpsu-green/5 to-cpsu-yellow/5">
+    <section class="py-20 bg-gradient-to-br from-cpsu-green/5 to-cpsu-yellow/5">
       <div class="container mx-auto px-6">
         <div class="max-w-6xl mx-auto">
           <div class="text-center mb-16">
@@ -468,77 +468,53 @@
           </div>
 
          <!-- Team Members Grid -->
-          <!-- <div class="grid md:grid-cols-3 gap-8 mb-12"> -->
+          <div class="grid md:grid-cols-2 gap-8 mb-12">
             <!-- Team Member 1 - You can customize these -->
-            <!-- <div class="team-card">
+            <div class="team-card">
               <div class="w-24 h-24 bg-gradient-to-br from-cpsu-green to-cpsu-green-dark rounded-full mx-auto mb-4 flex items-center justify-center text-white text-3xl font-bold">
                 👨‍💻
               </div>
               <h3 class="text-xl font-bold text-gray-800 mb-1">Eugene Pausa</h3>
-              <p class="text-cpsu-green font-semibold mb-2">Lead Developer</p>
-              <p class="text-sm text-gray-600 mb-3">Project Lead & Full-Stack Development</p>
-              <div class="text-xs text-gray-500 space-y-1">
-                <p>• System Architecture</p>
-                <p>• AI/ML Integration</p>
-                <p>• Backend Development</p>
-              </div>
-            </div> -->
+              <p class="text-cpsu-green font-semibold mb-2">Member</p>
+            </div>
 
             <!-- Team Member 2 -->
-            <!-- <div class="team-card">
+            <div class="team-card">
               <div class="w-24 h-24 bg-gradient-to-br from-cpsu-green to-cpsu-green-dark rounded-full mx-auto mb-4 flex items-center justify-center text-white text-3xl font-bold">
                 👨‍💻
               </div>
-              <h3 class="text-xl font-bold text-gray-800 mb-1">Team Member 2</h3>
-              <p class="text-cpsu-green font-semibold mb-2">Co-Developer</p>
-              <p class="text-sm text-gray-600 mb-3">Frontend & UI/UX Design</p>
-              <div class="text-xs text-gray-500 space-y-1">
-                <p>• Vue.js Development</p>
-                <p>• User Interface Design</p>
-                <p>• User Experience</p>
-              </div>
-            </div> -->
+              <h3 class="text-xl font-bold text-gray-800 mb-1">Charry Jane Cuenca</h3>
+              <p class="text-cpsu-green font-semibold mb-2">Member</p>
+            </div>
 
             <!-- Team Member 3 -->
-            <!-- <div class="team-card">
+            <div class="team-card">
               <div class="w-24 h-24 bg-gradient-to-br from-cpsu-green to-cpsu-green-dark rounded-full mx-auto mb-4 flex items-center justify-center text-white text-3xl font-bold">
                 👨‍💻
               </div>
-              <h3 class="text-xl font-bold text-gray-800 mb-1">Team Member 3</h3>
-              <p class="text-cpsu-green font-semibold mb-2">Co-Developer</p>
-              <p class="text-sm text-gray-600 mb-3">Data Science & ML Training</p>
-              <div class="text-xs text-gray-500 space-y-1">
-                <p>• Machine Learning Models</p>
-                <p>• Dataset Management</p>
-                <p>• Model Training</p>
-              </div>
-            </div> -->
+              <h3 class="text-xl font-bold text-gray-800 mb-1">Jonel Roy Talapiero</h3>
+              <p class="text-cpsu-green font-semibold mb-2">Member</p>
+            </div>
 
             <!-- Add more team members as needed -->
-            <!-- <div class="team-card">
+            <div class="team-card">
               <div class="w-24 h-24 bg-gradient-to-br from-cpsu-green to-cpsu-green-dark rounded-full mx-auto mb-4 flex items-center justify-center text-white text-3xl font-bold">
                 👩‍💻
               </div>
-              <h3 class="text-xl font-bold text-gray-800 mb-1">Team Member 4</h3>
-              <p class="text-cpsu-green font-semibold mb-2">Co-Developer</p>
-              <p class="text-sm text-gray-600 mb-3">Chatbot Development & Testing</p>
-              <div class="text-xs text-gray-500 space-y-1">
-                <p>• Rasa Integration</p>
-                <p>• NLU Training</p>
-                <p>• Quality Assurance</p>
-              </div>
+              <h3 class="text-xl font-bold text-gray-800 mb-1">Rodelyn Sumagaysay</h3>
+              <p class="text-cpsu-green font-semibold mb-2">Members</p>
             </div>
-          </div> -->
+          </div>
 
           <!-- Thesis Advisors -->
-          <!-- <div class="bg-white rounded-lg shadow-lg p-8 border-l-4 border-cpsu-green">
+          <div class="bg-white rounded-lg shadow-lg p-8 border-l-4 border-cpsu-green">
             <h3 class="text-2xl font-bold text-cpsu-green mb-6 text-center">Thesis Advisors & Acknowledgments</h3>
             <div class="grid md:grid-cols-2 gap-6">
               <div class="text-center">
                 <div class="w-20 h-20 bg-cpsu-yellow rounded-full mx-auto mb-3 flex items-center justify-center text-cpsu-green text-2xl font-bold">
                   👨‍🏫
                 </div>
-                <h4 class="font-bold text-gray-800">Prof. [Advisor Name]</h4>
+                <h4 class="font-bold text-gray-800">JUFEL M. CASTULO</h4>
                 <p class="text-sm text-gray-600">Thesis Advisor</p>
                 <p class="text-xs text-gray-500 mt-2">Computer Studies Department</p>
               </div>
@@ -546,8 +522,8 @@
                 <div class="w-20 h-20 bg-cpsu-yellow rounded-full mx-auto mb-3 flex items-center justify-center text-cpsu-green text-2xl font-bold">
                   👨‍⚕️
                 </div>
-                <h4 class="font-bold text-gray-800">Dr. [Clinic Director Name]</h4>
-                <p class="text-sm text-gray-600">Technical Consultant</p>
+                <h4 class="font-bold text-gray-800">KRISTINE C. DURAN, RN, MAN</h4>
+                <p class="text-sm text-gray-600">University Clinic Head</p>
                 <p class="text-xs text-gray-500 mt-2">CPSU Health Services</p>
               </div>
             </div>
@@ -556,10 +532,10 @@
                 Special thanks to the CPSU Clinic staff, faculty members, and all students who participated in testing and providing valuable feedback for this project.
               </p>
             </div>
-          </div> -->
+          </div>
 
           <!-- Project Info -->
-          <!-- <div class="mt-8 grid md:grid-cols-3 gap-6">
+          <div class="mt-8 grid md:grid-cols-3 gap-6">
             <div class="bg-white rounded-lg shadow p-6 text-center">
               <div class="text-3xl mb-2">📚</div>
               <h4 class="font-bold text-gray-800 mb-2">Academic Year</h4>
@@ -578,7 +554,7 @@
           </div>
         </div>
       </div>
-    </section> -->
+    </section>
 
     <!-- Contact Section -->
     <section id="contact" class="py-20 bg-gradient-to-br from-cpsu-green to-cpsu-green-dark text-white">
@@ -646,11 +622,11 @@
             <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6">
               <h3 class="text-xl font-bold mb-4">Quick Links</h3>
               <div class="space-y-3 mb-6">
-                <a href="#" class="block text-cpsu-yellow hover:underline">Privacy Policy</a>
-                <a href="#" class="block text-cpsu-yellow hover:underline">Terms of Service</a>
-                <a href="#" class="block text-cpsu-yellow hover:underline">Data Security</a>
-                <a href="#" class="block text-cpsu-yellow hover:underline">FAQs</a>
-                <a href="#" class="block text-cpsu-yellow hover:underline">User Guide</a>
+                <router-link to="/privacy-policy" class="block text-cpsu-yellow hover:underline">Privacy Policy</router-link>
+                <router-link to="/terms-of-service" class="block text-cpsu-yellow hover:underline">Terms of Service</router-link>
+                <router-link to="/data-security" class="block text-cpsu-yellow hover:underline">Data Security</router-link>
+                <router-link to="/faqs" class="block text-cpsu-yellow hover:underline">FAQs</router-link>
+                <router-link to="/user-guide" class="block text-cpsu-yellow hover:underline">User Guide</router-link>
               </div>
               
               <h3 class="text-xl font-bold mb-4">Support</h3>
@@ -674,7 +650,12 @@
             <p>&copy; 2025 CPSU Health Assistant. All rights reserved.</p>
             <p class="text-sm">Built with ❤️ for the Central Philippines State University</p>
           </div>
-          <div class="flex space-x-6">
+          <div class="flex flex-wrap justify-center gap-4 md:gap-6">
+            <router-link to="/privacy-policy" class="hover:text-cpsu-yellow transition-colors">Privacy Policy</router-link>
+            <router-link to="/terms-of-service" class="hover:text-cpsu-yellow transition-colors">Terms of Service</router-link>
+            <router-link to="/data-security" class="hover:text-cpsu-yellow transition-colors">Data Security</router-link>
+            <router-link to="/faqs" class="hover:text-cpsu-yellow transition-colors">FAQs</router-link>
+            <router-link to="/user-guide" class="hover:text-cpsu-yellow transition-colors">User Guide</router-link>
             <a href="#" class="hover:text-cpsu-yellow transition-colors">Facebook</a>
             <a href="#" class="hover:text-cpsu-yellow transition-colors">Twitter</a>
             <a href="#" class="hover:text-cpsu-yellow transition-colors">Instagram</a>

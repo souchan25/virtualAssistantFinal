@@ -87,7 +87,10 @@
         >
           <div class="flex items-start justify-between mb-4">
             <div>
-              <h3 class="text-xl font-bold text-cpsu-green mb-1">{{ followup.symptom_disease }}</h3>
+              <h3 class="text-xl font-bold text-cpsu-green mb-1">{{ getFollowupDiagnosis(followup) }}</h3>
+              <p v-if="followup.symptom_details?.staff_diagnosis" class="text-xs text-blue-600 mb-1">
+                ✏️ Staff corrected (AI: {{ followup.symptom_disease }})
+              </p>
               <p class="text-sm text-gray-600">
                 Due: {{ formatDate(followup.scheduled_date) }}
                 <span v-if="followup.is_overdue" class="text-red-600 font-semibold ml-2">
@@ -122,7 +125,12 @@
         >
           <div class="flex items-start justify-between">
             <div class="flex-1">
-              <h3 class="font-semibold text-gray-800 mb-2">{{ followup.symptom_disease }}</h3>
+              <h3 class="font-semibold text-gray-800 mb-2">
+                {{ getFollowupDiagnosis(followup) }}
+              </h3>
+              <p v-if="followup.symptom_details?.staff_diagnosis" class="text-xs text-blue-600 mb-2">
+                ✏️ Staff corrected (AI: {{ followup.symptom_disease }})
+              </p>
               <p class="text-sm text-gray-600 mb-2">
                 Responded: {{ formatDate(followup.response_date!) }}
               </p>
@@ -135,9 +143,24 @@
                   Appointment Needed
                 </span>
               </div>
-              <p v-if="followup.notes" class="text-sm text-gray-700 italic">
+              <p v-if="followup.notes" class="text-sm text-gray-700 italic mb-3">
                 "{{ followup.notes }}"
               </p>
+
+              <!-- Staff Review Feedback -->
+              <div v-if="followup.review_notes" class="mt-3 bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
+                <p class="text-sm font-semibold text-green-800 mb-1">🩺 Clinic Staff Notes:</p>
+                <p class="text-sm text-green-700">{{ followup.review_notes }}</p>
+              </div>
+
+              <!-- Symptom Details Summary -->
+              <div v-if="followup.symptom_details" class="mt-3 text-xs text-gray-500 flex flex-wrap gap-3">
+                <span>Duration: {{ followup.symptom_details.duration_days }} day(s)</span>
+                <span>Severity: {{ followup.symptom_details.severity }}</span>
+                <span v-if="followup.symptom_details.confidence_score">
+                  Confidence: {{ (followup.symptom_details.confidence_score * 100).toFixed(0) }}%
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -284,6 +307,12 @@ const getOutcomeBadgeClass = (outcome: string) => {
     worse: 'bg-red-200 text-red-800'
   }
   return classes[outcome] || 'bg-gray-200 text-gray-800'
+}
+
+const getFollowupDiagnosis = (followup: FollowUp) => {
+  if (followup.symptom_details?.staff_diagnosis) return followup.symptom_details.staff_diagnosis
+  if (followup.symptom_details?.final_diagnosis) return followup.symptom_details.final_diagnosis
+  return followup.symptom_disease || 'N/A'
 }
 
 const getOutcomeText = (outcome: string) => {

@@ -22,7 +22,9 @@ export const useFollowUpStore = defineStore('followup', {
   getters: {
     overdueFollowUps: (state) => state.pendingFollowUps.filter(f => f.is_overdue),
     upcomingFollowUps: (state) => state.pendingFollowUps.filter(f => !f.is_overdue),
-    completedFollowUps: (state) => state.followUps.filter(f => f.status === 'completed'),
+    completedFollowUps: (state) => state.followUps.filter(f =>
+      f.status === 'completed' || f.status === 'reviewed'
+    ),
     
     totalPending: (state) => state.pendingFollowUps.length,
     totalOverdue: (state) => state.pendingFollowUps.filter(f => f.is_overdue).length

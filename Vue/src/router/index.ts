@@ -10,6 +10,36 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: false }
   },
   {
+    path: '/privacy-policy',
+    name: 'privacy-policy',
+    component: () => import('@/views/info/PrivacyPolicyView.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/terms-of-service',
+    name: 'terms-of-service',
+    component: () => import('@/views/info/TermsOfServiceView.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/data-security',
+    name: 'data-security',
+    component: () => import('@/views/info/DataSecurityView.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/faqs',
+    name: 'faqs',
+    component: () => import('@/views/info/FAQsView.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/user-guide',
+    name: 'user-guide',
+    component: () => import('@/views/info/UserGuideView.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
     path: '/login',
     name: 'login',
     component: () => import('@/views/auth/LoginView.vue'),

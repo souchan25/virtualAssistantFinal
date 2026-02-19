@@ -63,6 +63,8 @@ export interface SymptomRecord {
   id: number
   symptoms: string[]
   predicted_disease: string
+  staff_diagnosis?: string
+  final_diagnosis?: string
   confidence_score: number  // Django uses confidence_score, not confidence
   confidence?: number  // Legacy support
   top_predictions?: Array<{
@@ -163,6 +165,23 @@ export interface AdherenceStats {
 }
 
 // Follow-Up Types
+export interface FollowUpSymptomDetails {
+  symptoms: string[]
+  duration_days: number
+  severity: string
+  severity_value: number
+  predicted_disease: string
+  staff_diagnosis: string
+  final_diagnosis: string
+  confidence_score: number | null
+  top_predictions: Array<{ disease: string; confidence: number }> | null
+  is_communicable: boolean
+  is_acute: boolean
+  icd10_code: string
+  requires_referral: boolean
+  created_at: string | null
+}
+
 export interface FollowUp {
   id: string
   symptom_record: number
@@ -171,7 +190,7 @@ export interface FollowUp {
   student_school_id?: string
   symptom_disease?: string
   scheduled_date: string
-  status: 'pending' | 'completed' | 'overdue' | 'cancelled'
+  status: 'pending' | 'completed' | 'overdue' | 'cancelled' | 'reviewed'
   response_date?: string | null
   outcome?: 'improved' | 'same' | 'worse' | 'resolved' | null
   notes?: string
@@ -181,6 +200,7 @@ export interface FollowUp {
   review_notes?: string
   is_overdue?: boolean
   days_until_due?: number
+  symptom_details?: FollowUpSymptomDetails | null
   created_at: string
 }
 

@@ -121,12 +121,37 @@
               </div>
             </div>
 
-            <!-- Original Condition -->
+            <!-- Original Condition & Detailed Description -->
             <div class="bg-gray-50 rounded-lg p-4 mb-4">
-              <p class="text-sm text-gray-600 mb-2"><strong>Original Condition:</strong> {{ followup.original_condition }}</p>
-              <p class="text-sm text-gray-600">
+              <p class="text-sm text-gray-600 mb-2"><strong>Original Condition:</strong> {{ followup.original_condition || followup.symptom_disease || 'N/A' }}</p>
+              <p class="text-sm text-gray-600 mb-2">
                 <strong>Submitted:</strong> {{ formatDate(followup.created_at) }}
               </p>
+
+              <!-- Detailed Symptom Description -->
+              <div v-if="followup.symptom_details" class="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                <p class="text-sm text-gray-700">
+                  <strong>Symptoms:</strong>
+                  <span v-for="(s, i) in followup.symptom_details.symptoms" :key="i" class="inline-block px-2 py-0.5 bg-white border border-gray-300 rounded-full text-xs mr-1 mt-1">
+                    {{ s.replace('_', ' ') }}
+                  </span>
+                </p>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                  <p><strong>Severity:</strong> {{ followup.symptom_details.severity }}</p>
+                  <p><strong>Duration:</strong> {{ followup.symptom_details.duration_days }} day(s)</p>
+                  <p><strong>Confidence:</strong> {{ followup.symptom_details.confidence_score ? (followup.symptom_details.confidence_score * 100).toFixed(1) + '%' : 'N/A' }}</p>
+                  <p><strong>Communicable:</strong> {{ followup.symptom_details.is_communicable ? 'Yes' : 'No' }}</p>
+                </div>
+                <p v-if="followup.symptom_details.staff_diagnosis" class="text-sm text-blue-700">
+                  <strong>Staff Diagnosis:</strong> {{ followup.symptom_details.staff_diagnosis }}
+                </p>
+                <p v-if="followup.symptom_details.icd10_code" class="text-xs text-gray-500">
+                  <strong>ICD-10:</strong> {{ followup.symptom_details.icd10_code }}
+                </p>
+                <p v-if="followup.symptom_details.requires_referral" class="text-xs text-red-600 font-semibold">
+                  ⚠ Referral Required
+                </p>
+              </div>
             </div>
 
             <!-- Student Response (if submitted) -->
@@ -161,7 +186,44 @@
               >
                 📄 View Record
               </button>
+              <button
+                v-if="followup.symptom_record"
+                @click="openEditDiagnosis(followup)"
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+              >
+                ✏️ Edit Diagnosis
+              </button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Edit Diagnosis Modal -->
+      <div v-if="editingFollowup" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" @click="editingFollowup = null">
+        <div class="bg-white rounded-lg max-w-lg w-full" @click.stop>
+          <div class="bg-blue-600 text-white p-5 rounded-t-lg">
+            <h2 class="text-xl font-bold">Edit Final Diagnosis</h2>
+            <p class="text-sm opacity-90">{{ editingFollowup.student_name }}</p>
+          </div>
+          <div class="p-6">
+            <div class="mb-4 bg-gray-50 rounded-lg p-4 text-sm">
+              <p><strong>AI Prediction:</strong> {{ editingFollowup.symptom_details?.predicted_disease || editingFollowup.original_condition || 'N/A' }}</p>
+              <p v-if="editingFollowup.symptom_details"><strong>Symptoms:</strong> {{ editingFollowup.symptom_details.symptoms?.join(', ') }}</p>
+            </div>
+            <div class="mb-6">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Staff Final Diagnosis</label>
+              <input v-model="editDiagnosis" type="text" class="input-field w-full" placeholder="Enter corrected diagnosis..." />
+              <p class="text-xs text-gray-500 mt-1">This will override the AI prediction as the final diagnosis.</p>
+            </div>
+            <div class="flex gap-4">
+              <button @click="submitDiagnosisEdit" :disabled="diagnosisSubmitting || !editDiagnosis.trim()" class="btn-primary flex-1">
+                <span v-if="diagnosisSubmitting">Saving...</span>
+                <span v-else>Save Diagnosis</span>
+              </button>
+              <button @click="editingFollowup = null" class="btn-outline flex-1">Cancel</button>
+            </div>
+            <p v-if="diagnosisSuccess" class="mt-3 text-sm text-green-600 font-medium">Diagnosis updated successfully!</p>
+            <p v-if="diagnosisError" class="mt-3 text-sm text-red-600 font-medium">{{ diagnosisError }}</p>
           </div>
         </div>
       </div>
@@ -178,7 +240,25 @@
             <!-- Original Info -->
             <div class="mb-6">
               <h3 class="font-semibold text-gray-900 mb-2">Original Condition</h3>
-              <p class="text-gray-700">{{ reviewingFollowup.original_condition }}</p>
+              <p class="text-gray-700 text-lg font-medium">{{ reviewingFollowup.original_condition || reviewingFollowup.symptom_disease || 'N/A' }}</p>
+
+              <!-- Detailed description in modal -->
+              <div v-if="reviewingFollowup.symptom_details" class="mt-3 bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
+                <p><strong>Symptoms:</strong>
+                  <span v-for="(s, i) in reviewingFollowup.symptom_details.symptoms" :key="i" class="inline-block px-2 py-0.5 bg-white border border-gray-300 rounded-full text-xs mr-1 mt-1">
+                    {{ s.replace('_', ' ') }}
+                  </span>
+                </p>
+                <div class="grid grid-cols-2 gap-2">
+                  <p><strong>Severity:</strong> {{ reviewingFollowup.symptom_details.severity }}</p>
+                  <p><strong>Duration:</strong> {{ reviewingFollowup.symptom_details.duration_days }} day(s)</p>
+                  <p><strong>Confidence:</strong> {{ reviewingFollowup.symptom_details.confidence_score ? (reviewingFollowup.symptom_details.confidence_score * 100).toFixed(1) + '%' : 'N/A' }}</p>
+                  <p><strong>Communicable:</strong> {{ reviewingFollowup.symptom_details.is_communicable ? 'Yes' : 'No' }}</p>
+                </div>
+                <p v-if="reviewingFollowup.symptom_details.staff_diagnosis" class="text-blue-700">
+                  <strong>Staff Diagnosis:</strong> {{ reviewingFollowup.symptom_details.staff_diagnosis }}
+                </p>
+              </div>
             </div>
 
             <!-- Student Response -->
@@ -225,6 +305,13 @@ const reviewingFollowup = ref<any>(null)
 const staffNotes = ref('')
 const submitting = ref(false)
 
+// Edit Diagnosis State
+const editingFollowup = ref<any>(null)
+const editDiagnosis = ref('')
+const diagnosisSubmitting = ref(false)
+const diagnosisSuccess = ref(false)
+const diagnosisError = ref<string | null>(null)
+
 // Methods
 const fetchFollowups = async () => {
   loading.value = true
@@ -265,7 +352,7 @@ const submitReview = async () => {
   submitting.value = true
   try {
     await api.post(`/followups/${reviewingFollowup.value.id}/review/`, {
-      staff_notes: staffNotes.value
+      review_notes: staffNotes.value
     })
     await fetchFollowups()
     closeReview()
@@ -274,6 +361,41 @@ const submitReview = async () => {
     console.error('Error submitting review:', err)
   } finally {
     submitting.value = false
+  }
+}
+
+const openEditDiagnosis = (followup: any) => {
+  editingFollowup.value = followup
+  editDiagnosis.value = followup.symptom_details?.staff_diagnosis || ''
+  diagnosisSuccess.value = false
+  diagnosisError.value = null
+}
+
+const submitDiagnosisEdit = async () => {
+  if (!editDiagnosis.value.trim() || !editingFollowup.value) return
+
+  diagnosisSubmitting.value = true
+  diagnosisSuccess.value = false
+  diagnosisError.value = null
+
+  try {
+    await api.patch(`/symptoms/${editingFollowup.value.symptom_record}/diagnosis/`, {
+      staff_diagnosis: editDiagnosis.value.trim()
+    })
+    if (editingFollowup.value.symptom_details) {
+      editingFollowup.value.symptom_details.staff_diagnosis = editDiagnosis.value.trim()
+      editingFollowup.value.symptom_details.final_diagnosis = editDiagnosis.value.trim()
+    }
+    editingFollowup.value.original_condition = editDiagnosis.value.trim()
+    diagnosisSuccess.value = true
+    setTimeout(() => {
+      editingFollowup.value = null
+    }, 1200)
+  } catch (err: any) {
+    diagnosisError.value = err.response?.data?.error || 'Failed to update diagnosis'
+    console.error('Error updating diagnosis:', err)
+  } finally {
+    diagnosisSubmitting.value = false
   }
 }
 
