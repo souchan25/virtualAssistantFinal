@@ -561,6 +561,257 @@ Be concise. Focus on medical accuracy."""
                 'alternative_diagnosis': None
             }
 
+    def extract_and_predict(self, message: str) -> Dict:
+        """
+        Use Cohere (or fallback LLM) to extract symptoms from a natural-language
+        message AND predict the most likely disease — all in one call, no ML model needed.
+
+        Returns dict with all fields needed for SymptomRecord + chat response:
+            {
+                "has_symptoms": bool,
+                "extracted_symptoms": ["fever", "cough"],
+                "predicted_disease": "Common Cold",
+                "confidence_score": 0.82,
+                "top_predictions": [{"disease": "...", "confidence": 0.82}, ...],
+                "description": "Short description of the disease",
+                "precautions": ["rest", "drink fluids", ...],
+                "severity": "mild" | "moderate" | "severe",
+                "duration_days": int,
+                "is_communicable": bool,
+                "is_acute": bool,
+                "icd10_code": "J00"
+            }
+        """
+
+        prompt = f"""You are an expert medical diagnostic assistant. A university student sent the following message in a health chatbot:
+
+STUDENT MESSAGE: "{message}"
+
+Your tasks:
+1. Determine if the message contains any health symptoms. If the student is just greeting, asking a general question, or chatting casually, set "has_symptoms" to false and leave other fields empty.
+2. If symptoms are present:
+   a. Extract every symptom mentioned (use medical terminology with underscores, e.g. "bad cough" → "cough", "runny nose" → "continuous_sneezing", "mild fever" → "mild_fever").
+   b. Predict the most likely disease/condition based on the symptoms.
+   c. Provide a confidence score (0.0 to 1.0) for your top prediction.
+   d. List the top 3 most likely conditions with confidence scores (must sum roughly to ≤1.0).
+   e. Write a brief 1-2 sentence description of the predicted disease.
+   f. List 3-4 practical precautions/self-care tips.
+   g. Estimate severity (mild/moderate/severe) from the patient's wording.
+   h. Estimate duration in days the patient has had symptoms (default 1 if not mentioned).
+   i. Determine if the disease is communicable (contagious).
+   j. Determine if the condition is acute (sudden onset, short-term) vs chronic.
+   k. Provide the ICD-10 code if you know it (e.g. J00 for common cold), otherwise empty string.
+
+Respond ONLY with this JSON (no markdown fences, no explanation):
+{{
+  "has_symptoms": true,
+  "extracted_symptoms": ["symptom_one", "symptom_two"],
+  "predicted_disease": "Disease Name",
+  "confidence_score": 0.85,
+  "top_predictions": [
+    {{"disease": "Disease Name", "confidence": 0.85}},
+    {{"disease": "Second Disease", "confidence": 0.10}},
+    {{"disease": "Third Disease", "confidence": 0.05}}
+  ],
+  "description": "Brief description of the predicted disease.",
+  "precautions": ["precaution 1", "precaution 2", "precaution 3"],
+  "severity": "moderate",
+  "duration_days": 1,
+  "is_communicable": false,
+  "is_acute": true,
+  "icd10_code": ""
+}}"""
+
+        result_text = None
+
+        if self.cohere_client:
+            try:
+                resp = self.cohere_client.chat(message=prompt)
+                result_text = resp.text
+                self.logger.info("Symptom extraction + prediction from Cohere")
+            except Exception as e:
+                self.logger.warning(f"Cohere extract_and_predict failed: {e}")
+
+        if not result_text and self.openrouter_api_key:
+            try:
+                resp = requests.post(
+                    url="https://openrouter.ai/api/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self.openrouter_api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": "meta-llama/llama-3.2-3b-instruct:free",
+                        "messages": [{"role": "user", "content": prompt}],
+                        "temperature": 0.3,
+                        "max_tokens": 600,
+                    },
+                    timeout=30,
+                )
+                if resp.status_code == 200:
+                    result_text = resp.json()["choices"][0]["message"]["content"]
+                    self.logger.info("Symptom extraction + prediction from OpenRouter")
+            except Exception as e:
+                self.logger.warning(f"OpenRouter extract_and_predict failed: {e}")
+
+        if not result_text and self.groq_client:
+            try:
+                resp = self.groq_client.chat.completions.create(
+                    model="llama-3.1-8b-instant",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.3,
+                    max_completion_tokens=600,
+                    stream=False,
+                )
+                result_text = resp.choices[0].message.content
+                self.logger.info("Symptom extraction + prediction from Groq")
+            except Exception as e:
+                self.logger.warning(f"Groq extract_and_predict failed: {e}")
+
+        if result_text:
+            try:
+                return self._parse_prediction_result(result_text)
+            except Exception as e:
+                self.logger.error(f"Failed to parse extract_and_predict result: {e}")
+
+        return self._empty_prediction()
+
+    def _parse_prediction_result(self, text: str) -> Dict:
+        """Parse the combined extraction+prediction JSON from Cohere."""
+        clean = text.strip()
+        if "```json" in clean:
+            clean = clean.split("```json")[1].split("```")[0].strip()
+        elif "```" in clean:
+            clean = clean.split("```")[1].split("```")[0].strip()
+
+        if not clean.startswith("{"):
+            json_match = re.search(r'\{[\s\S]*\}', clean)
+            if json_match:
+                clean = json_match.group(0)
+
+        clean = self._fix_json_response(clean)
+        parsed = json.loads(clean)
+
+        has_symptoms = parsed.get("has_symptoms", False)
+        if not has_symptoms:
+            return self._empty_prediction()
+
+        symptoms = [s.lower().strip().replace(" ", "_") for s in parsed.get("extracted_symptoms", [])]
+        symptoms = list(dict.fromkeys(symptoms))  # deduplicate
+
+        confidence = parsed.get("confidence_score", 0.0)
+        try:
+            confidence = max(0.0, min(1.0, float(confidence)))
+        except (ValueError, TypeError):
+            confidence = 0.0
+
+        top_preds = parsed.get("top_predictions", [])
+        if not top_preds:
+            disease = parsed.get("predicted_disease", "Unknown")
+            top_preds = [{"disease": disease, "confidence": confidence}]
+
+        severity = parsed.get("severity", "moderate")
+        if severity not in ("mild", "moderate", "severe"):
+            severity = "moderate"
+
+        duration = parsed.get("duration_days", 1)
+        try:
+            duration = max(1, int(duration))
+        except (ValueError, TypeError):
+            duration = 1
+
+        return {
+            "has_symptoms": True,
+            "extracted_symptoms": symptoms,
+            "predicted_disease": parsed.get("predicted_disease", "Unknown"),
+            "confidence_score": confidence,
+            "top_predictions": top_preds,
+            "description": parsed.get("description", ""),
+            "precautions": parsed.get("precautions", []),
+            "severity": severity,
+            "duration_days": duration,
+            "is_communicable": bool(parsed.get("is_communicable", False)),
+            "is_acute": bool(parsed.get("is_acute", True)),
+            "icd10_code": parsed.get("icd10_code", ""),
+        }
+
+    def _empty_prediction(self) -> Dict:
+        """Return an empty prediction result (no symptoms detected)."""
+        return {
+            "has_symptoms": False,
+            "extracted_symptoms": [],
+            "predicted_disease": "",
+            "confidence_score": 0.0,
+            "top_predictions": [],
+            "description": "",
+            "precautions": [],
+            "severity": "moderate",
+            "duration_days": 1,
+            "is_communicable": False,
+            "is_acute": True,
+            "icd10_code": "",
+        }
+
+    def generate_diagnosis_response(self, message: str, diagnosis: Dict) -> str:
+        """
+        Generate a friendly diagnostic chat reply using Cohere.
+        Called after extract_and_predict() so the response references the results.
+
+        Args:
+            message: Original user message
+            diagnosis: Result dict from extract_and_predict()
+        """
+        symptoms_str = ", ".join(s.replace("_", " ") for s in diagnosis.get("extracted_symptoms", []))
+        disease = diagnosis.get("predicted_disease", "Unknown")
+        confidence = diagnosis.get("confidence_score", 0)
+        description = diagnosis.get("description", "")
+        precautions = diagnosis.get("precautions", [])
+        top3 = diagnosis.get("top_predictions", [])
+
+        top3_text = "\n".join(
+            f"  - {p['disease']} ({p['confidence']:.0%})" for p in top3[:3]
+        ) if top3 else "N/A"
+
+        prompt = f"""You are a caring health assistant for CPSU (Central Philippines State University) students.
+
+A student said: "{message}"
+
+Based on our analysis:
+- Extracted symptoms: {symptoms_str}
+- Predicted condition: {disease} (confidence: {confidence:.0%})
+- Description: {description}
+- Precautions: {', '.join(precautions[:4]) if precautions else 'N/A'}
+- Other possible conditions:
+{top3_text}
+
+Write a warm, helpful response that:
+1. Acknowledges their symptoms empathetically
+2. Shares the predicted condition and confidence level
+3. Gives 2-3 practical self-care tips from the precautions
+4. Reminds them to visit the CPSU campus clinic if symptoms persist or worsen
+5. Keep it concise (under 200 words), friendly, and culturally appropriate for Filipino students
+
+Do NOT use markdown headers. Use plain text with bullet points (•) if needed."""
+
+        response_text = self.generate_chat_response(prompt)
+        if not response_text or "technical issues" in response_text.lower():
+            lines = [
+                f"I noticed you're experiencing {symptoms_str}. Based on my analysis, this could be **{disease}** (confidence: {confidence:.0%}).",
+                "",
+            ]
+            if description:
+                lines.append(f"**About this condition:** {description}")
+                lines.append("")
+            if precautions:
+                lines.append("**Recommended precautions:**")
+                for p in precautions[:4]:
+                    lines.append(f"• {p}")
+                lines.append("")
+            lines.append("If your symptoms persist or worsen, please visit the CPSU campus clinic for a proper check-up. Take care!")
+            response_text = "\n".join(lines)
+
+        return response_text
+
     def _extract_validation_json(self, text: str) -> Dict:
         """Extract and parse validation JSON from LLM response text."""
         try:

@@ -32,12 +32,18 @@ from .ml_service import get_ml_predictor
 
 logger = logging.getLogger(__name__)
 from .llm_service import AIInsightGenerator
-from .rasa_service import RasaChatService
+
+# ------------------------------------------------------------------
+# Rasa integration – commented out until Rasa is deployed.
+# Uncomment the two lines below and the Rasa flow inside
+# send_chat_message() when you're ready to use Rasa.
+# ------------------------------------------------------------------
+# from .rasa_service import RasaChatService
+# rasa_service = RasaChatService()
 
 # Get singleton instances
 ml_predictor = get_ml_predictor()
 ai_generator = AIInsightGenerator()
-rasa_service = RasaChatService()
 
 User = get_user_model()
 
@@ -345,21 +351,25 @@ def start_chat_session(request):
 @permission_classes([IsAuthenticated, IsStudent, HasDataConsent])
 def send_chat_message(request):
     """
-    Send message in AI chat (real-time, not stored)
+    Send message in AI chat – **Cohere-powered (Rasa bypassed)**.
+    Cohere handles BOTH symptom extraction AND disease prediction.
+    No ML model is used here (the Symptom Checker page uses the ML model).
     POST /api/chat/message/
+
+    When Rasa is deployed, uncomment the RASA FLOW block below and
+    comment out the COHERE-ONLY FLOW block.
     """
     serializer = ChatMessageSerializer(data=request.data)
-    
+
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
     data = serializer.validated_data
     message = data['message']
     language = data.get('language', 'english')
     session_id = data.get('session_id')
-    
+
     try:
-        # Verify session exists and belongs to user
         if session_id:
             session = ChatSession.objects.get(id=session_id, student=request.user)
         else:
@@ -367,135 +377,201 @@ def send_chat_message(request):
                 {'error': 'session_id is required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
-        # HYBRID FLOW: Rasa handles conversation → Django provides ML predictions
-        # LLM only used as fallback when Rasa fails
-        
-        # Step 1: Send message to Rasa
-        rasa_response = rasa_service.send_message(
-            message=message,
-            sender_id=str(session_id),
-            metadata={
-                'language': language,
-                'user_id': str(request.user.id),
-                'django_api': request.build_absolute_uri('/api/')  # Rasa can call back
-            }
+
+        # =================================================================
+        # COHERE-ONLY FLOW  (active while Rasa is not deployed)
+        #
+        # Step 1: Cohere extracts symptoms AND predicts disease in one call
+        # Step 2: Cohere generates a friendly diagnostic response
+        # Step 3: Save SymptomRecord to DB (shows in history, same as Rasa)
+        # =================================================================
+
+        # Step 1 – Cohere extracts symptoms + predicts disease (no ML model)
+        diagnosis = ai_generator.extract_and_predict(message)
+
+        has_symptoms = diagnosis.get('has_symptoms', False)
+        logger.info(
+            f"Cohere diagnosis: has_symptoms={has_symptoms}, "
+            f"symptoms={diagnosis.get('extracted_symptoms')}, "
+            f"disease={diagnosis.get('predicted_disease')}"
         )
-        
-        # Step 2: Check if we should use LLM fallback
-        if rasa_service.should_use_llm_fallback(rasa_response):
-            # LLM Fallback: Only when Rasa completely fails
-            logger.warning(f"Using LLM fallback (Rasa {'unavailable' if not rasa_service.is_available() else 'low confidence'})")
+
+        # Step 2 – Generate chat response
+        if has_symptoms and diagnosis.get('predicted_disease'):
+            try:
+                response_text = ai_generator.generate_diagnosis_response(message, diagnosis)
+            except Exception as resp_err:
+                logger.error(f"Diagnosis response generation failed: {resp_err}")
+                response_text = ai_generator.generate_chat_response(
+                    message=message,
+                    context={'language': language}
+                )
+        else:
             try:
                 response_text = ai_generator.generate_chat_response(
                     message=message,
-                    context={'language': language, 'session_id': str(session_id), 'rasa_failed': True}
+                    context={'language': language, 'session_id': str(session_id)}
                 )
-                # Ensure response is not None or empty
-                if not response_text or not response_text.strip():
-                    raise ValueError("LLM returned empty response")
-            except Exception as llm_error:
-                logger.error(f"LLM fallback failed: {llm_error}")
-                # Ultimate fallback - hardcoded response
-                response_text = "Thank you for your message. I'm experiencing technical difficulties. Please consult with our clinic staff for proper evaluation of your symptoms."
-            
-            response_source = "llm_fallback"
-            buttons = []
-            
-            # Try to extract symptoms from message and get ML prediction for LLM fallback
-            diagnosis_data = None
-            try:
-                predictor = get_ml_predictor()
-                available_symptoms = predictor.get_available_symptoms()
-                
-                # Simple symptom extraction from message
-                message_lower = message.lower().replace(' ', '_')
-                extracted_symptoms = [s for s in available_symptoms if s in message_lower]
-                
-                # If we found symptoms, get ML prediction
-                if extracted_symptoms:
-                    prediction = predictor.predict(extracted_symptoms)
-                    diagnosis_data = {
-                        'symptoms': extracted_symptoms,
-                        'predicted_disease': prediction.get('predicted_disease'),
-                        'confidence': prediction.get('confidence_score', 0.0),
-                        'top_predictions': prediction.get('top_predictions', []),
-                        'is_communicable': prediction.get('is_communicable', False),
-                        'is_acute': prediction.get('is_acute', False),
-                        'icd10_code': prediction.get('icd10_code', ''),
-                        'severity': 'moderate',
-                        'duration_days': 1
-                    }
-                    logger.info(f"LLM fallback: extracted {len(extracted_symptoms)} symptoms, predicted {prediction.get('predicted_disease')}")
-            except Exception as extract_error:
-                logger.warning(f"Could not extract symptoms from LLM fallback message: {extract_error}")
-        else:
-            # Use Rasa response (Rasa handles conversation flow)
-            response_text = rasa_response['text']
-            response_source = "rasa"
-            buttons = rasa_response.get('buttons', [])
-            
-            # Check if Rasa provided diagnosis data
-            diagnosis_data = rasa_response.get('custom', {}).get('diagnosis')
-        
-        # Step 3: Save symptom record if diagnosis was provided
+            except Exception as chat_err:
+                logger.error(f"Chat response generation failed: {chat_err}")
+                response_text = (
+                    "Thank you for your message. I'm here to help with health concerns. "
+                    "Could you describe your symptoms so I can assist you better?"
+                )
+
+        if not response_text or not response_text.strip():
+            response_text = (
+                "Thank you for your message. I'm experiencing technical difficulties. "
+                "Please consult with our clinic staff for proper evaluation."
+            )
+
+        # Step 3 – Save SymptomRecord (same shape as old Rasa flow)
         record_id = None
-        if diagnosis_data and diagnosis_data.get('predicted_disease'):
+        if has_symptoms and diagnosis.get('predicted_disease'):
             try:
-                # Extract symptoms from diagnosis data or session metadata
-                symptoms = diagnosis_data.get('symptoms', [])
-                
-                # Convert severity string to integer (1=Mild, 2=Moderate, 3=Severe)
                 severity_map = {'mild': 1, 'moderate': 2, 'severe': 3}
-                severity_value = diagnosis_data.get('severity', 'moderate')
+                severity_value = diagnosis.get('severity', 'moderate')
                 if isinstance(severity_value, str):
-                    severity_int = severity_map.get(severity_value.lower(), 2)  # Default to moderate (2)
+                    severity_int = severity_map.get(severity_value.lower(), 2)
                 else:
                     severity_int = int(severity_value) if severity_value else 2
-                
-                # Create symptom record for history tracking
+
                 record = SymptomRecord.objects.create(
                     student=request.user,
-                    symptoms=symptoms,
-                    duration_days=diagnosis_data.get('duration_days', 1),
+                    symptoms=diagnosis['extracted_symptoms'],
+                    duration_days=diagnosis.get('duration_days', 1),
                     severity=severity_int,
-                    predicted_disease=diagnosis_data['predicted_disease'],
-                    confidence_score=diagnosis_data.get('confidence', 0.0),
-                    top_predictions=diagnosis_data.get('top_predictions', []),
-                    is_communicable=diagnosis_data.get('is_communicable', False),
-                    is_acute=diagnosis_data.get('is_acute', False),
-                    icd10_code=diagnosis_data.get('icd10_code', '')
+                    predicted_disease=diagnosis['predicted_disease'],
+                    confidence_score=diagnosis.get('confidence_score', 0.0),
+                    top_predictions=diagnosis.get('top_predictions', []),
+                    is_communicable=diagnosis.get('is_communicable', False),
+                    is_acute=diagnosis.get('is_acute', True),
+                    icd10_code=diagnosis.get('icd10_code', ''),
                 )
-                
-                # Check referral criteria
+
                 record.check_referral_criteria()
                 record.save()
-                
-                # Auto-create follow-up (3 days from now)
+
                 FollowUp.create_from_symptom(record, days_ahead=3)
-                
+
                 record_id = str(record.id)
-                logger.info(f"Created symptom record {record_id} from chat diagnosis")
-                
+                logger.info(f"Created symptom record {record_id} from Cohere chat diagnosis")
+
             except Exception as e:
                 logger.error(f"Failed to create symptom record from chat: {e}")
-        
+
         return Response({
             'response': response_text,
             'session_id': str(session_id),
-            'source': response_source,  # "rasa" or "llm_fallback"
-            'buttons': buttons,  # Interactive buttons from Rasa
-            'rasa_available': rasa_service.is_available(),  # Debug info
-            'record_id': record_id,  # ID of created symptom record (if any)
-            'diagnosis_saved': record_id is not None  # Whether diagnosis was saved to history
+            'source': 'cohere',
+            'buttons': [],
+            'rasa_available': False,
+            'record_id': record_id,
+            'diagnosis_saved': record_id is not None,
         })
-    
+
+        # =================================================================
+        # RASA FLOW  (uncomment when Rasa is deployed)
+        #
+        # Also uncomment the rasa_service import + singleton at the top of
+        # this file.  Then comment out the entire COHERE-ONLY FLOW above.
+        # =================================================================
+        #
+        # rasa_response = rasa_service.send_message(
+        #     message=message,
+        #     sender_id=str(session_id),
+        #     metadata={
+        #         'language': language,
+        #         'user_id': str(request.user.id),
+        #         'django_api': request.build_absolute_uri('/api/')
+        #     }
+        # )
+        #
+        # if rasa_service.should_use_llm_fallback(rasa_response):
+        #     logger.warning(f"Using LLM fallback (Rasa unavailable or low confidence)")
+        #     try:
+        #         response_text = ai_generator.generate_chat_response(
+        #             message=message,
+        #             context={'language': language, 'session_id': str(session_id), 'rasa_failed': True}
+        #         )
+        #         if not response_text or not response_text.strip():
+        #             raise ValueError("LLM returned empty response")
+        #     except Exception as llm_error:
+        #         logger.error(f"LLM fallback failed: {llm_error}")
+        #         response_text = ("Thank you for your message. I'm experiencing technical "
+        #                          "difficulties. Please consult with our clinic staff.")
+        #     response_source = "llm_fallback"
+        #     buttons = []
+        #     diagnosis_data = None
+        #     try:
+        #         predictor = get_ml_predictor()
+        #         available_symptoms = predictor.get_available_symptoms()
+        #         message_lower = message.lower().replace(' ', '_')
+        #         extracted_symptoms = [s for s in available_symptoms if s in message_lower]
+        #         if extracted_symptoms:
+        #             prediction = predictor.predict(extracted_symptoms)
+        #             diagnosis_data = {
+        #                 'symptoms': extracted_symptoms,
+        #                 'predicted_disease': prediction.get('predicted_disease'),
+        #                 'confidence': prediction.get('confidence_score', 0.0),
+        #                 'top_predictions': prediction.get('top_predictions', []),
+        #                 'is_communicable': prediction.get('is_communicable', False),
+        #                 'is_acute': prediction.get('is_acute', False),
+        #                 'icd10_code': prediction.get('icd10_code', ''),
+        #                 'severity': 'moderate',
+        #                 'duration_days': 1
+        #             }
+        #     except Exception as extract_error:
+        #         logger.warning(f"Could not extract symptoms: {extract_error}")
+        # else:
+        #     response_text = rasa_response['text']
+        #     response_source = "rasa"
+        #     buttons = rasa_response.get('buttons', [])
+        #     diagnosis_data = rasa_response.get('custom', {}).get('diagnosis')
+        #
+        # record_id = None
+        # if diagnosis_data and diagnosis_data.get('predicted_disease'):
+        #     try:
+        #         severity_map = {'mild': 1, 'moderate': 2, 'severe': 3}
+        #         severity_value = diagnosis_data.get('severity', 'moderate')
+        #         severity_int = severity_map.get(severity_value.lower(), 2) if isinstance(severity_value, str) else int(severity_value or 2)
+        #         record = SymptomRecord.objects.create(
+        #             student=request.user,
+        #             symptoms=diagnosis_data.get('symptoms', []),
+        #             duration_days=diagnosis_data.get('duration_days', 1),
+        #             severity=severity_int,
+        #             predicted_disease=diagnosis_data['predicted_disease'],
+        #             confidence_score=diagnosis_data.get('confidence', 0.0),
+        #             top_predictions=diagnosis_data.get('top_predictions', []),
+        #             is_communicable=diagnosis_data.get('is_communicable', False),
+        #             is_acute=diagnosis_data.get('is_acute', False),
+        #             icd10_code=diagnosis_data.get('icd10_code', ''),
+        #         )
+        #         record.check_referral_criteria()
+        #         record.save()
+        #         FollowUp.create_from_symptom(record, days_ahead=3)
+        #         record_id = str(record.id)
+        #     except Exception as e:
+        #         logger.error(f"Failed to create symptom record from chat: {e}")
+        #
+        # return Response({
+        #     'response': response_text,
+        #     'session_id': str(session_id),
+        #     'source': response_source,
+        #     'buttons': buttons,
+        #     'rasa_available': rasa_service.is_available(),
+        #     'record_id': record_id,
+        #     'diagnosis_saved': record_id is not None,
+        # })
+        # ================= END RASA FLOW =================================
+
     except ChatSession.DoesNotExist:
         return Response(
             {'error': 'Invalid session_id'},
             status=status.HTTP_404_NOT_FOUND
         )
     except Exception as e:
+        logger.error(f"send_chat_message error: {e}")
         return Response(
             {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
