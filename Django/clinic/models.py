@@ -184,7 +184,21 @@ class SymptomRecord(models.Model):
     requires_referral = models.BooleanField(default=False)
     referral_triggered = models.BooleanField(default=False)
     referral_date = models.DateTimeField(null=True, blank=True)
-    
+
+    # Staff override diagnosis
+    staff_diagnosis = models.CharField(
+        max_length=200,
+        blank=True,
+        default='',
+        help_text='Final diagnosis set by clinic staff, overrides AI prediction'
+    )
+    final_diagnosis = models.CharField(
+        max_length=200,
+        blank=True,
+        default='',
+        help_text='Resolved final diagnosis (staff_diagnosis if set, otherwise predicted_disease)'
+    )
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

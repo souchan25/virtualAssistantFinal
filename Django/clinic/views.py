@@ -217,7 +217,26 @@ class SymptomRecordViewSet(viewsets.ModelViewSet):
     """
     serializer_class = SymptomRecordSerializer
     permission_classes = [IsAuthenticated, IsOwnerOrStaff]
-    
+
+    @action(detail=True, methods=['patch'], permission_classes=[IsAuthenticated, IsClinicStaff])
+    def diagnosis(self, request, pk=None):
+        """
+        PATCH /api/symptoms/{id}/diagnosis/
+        Staff-only: set the final diagnosis for a symptom record.
+        """
+        record = self.get_object()
+        staff_diag = request.data.get('staff_diagnosis', '').strip()
+        if not staff_diag:
+            return Response({'error': 'staff_diagnosis is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        record.staff_diagnosis = staff_diag
+        record.final_diagnosis = staff_diag
+        record.save(update_fields=['staff_diagnosis', 'final_diagnosis', 'updated_at'])
+        return Response({
+            'id': str(record.id),
+            'staff_diagnosis': record.staff_diagnosis,
+            'final_diagnosis': record.final_diagnosis,
+        })
+
     def get_queryset(self):
         user = self.request.user
         
@@ -386,17 +405,75 @@ def send_chat_message(request):
         # Step 3: Save SymptomRecord to DB (shows in history, same as Rasa)
         # =================================================================
 
-        # Step 1 – Cohere extracts symptoms + predicts disease (no ML model)
-        diagnosis = ai_generator.extract_and_predict(message)
+        # ── Follow-up question state (stored in session.topics_discussed) ──────
+        topics = session.topics_discussed or []
+        # topics is a list; we store our state object as the last element when needed
+        followup_state = None
+        if topics and isinstance(topics[-1], dict) and topics[-1].get('_followup_pending'):
+            followup_state = topics[-1]
 
-        has_symptoms = diagnosis.get('has_symptoms', False)
-        logger.info(
-            f"Cohere diagnosis: has_symptoms={has_symptoms}, "
-            f"symptoms={diagnosis.get('extracted_symptoms')}, "
-            f"disease={diagnosis.get('predicted_disease')}"
-        )
+        # ── Step 1: If we are waiting for the student's follow-up answer ─────────
+        if followup_state:
+            # Student replied to our clarifying questions — build enriched context
+            original_message = followup_state.get('original_message', '')
+            original_symptoms = followup_state.get('symptoms', [])
+            symptoms_str = ', '.join(s.replace('_', ' ') for s in original_symptoms)
+            enriched_message = (
+                f"Original complaint: {original_message}. "
+                f"Symptoms identified: {symptoms_str}. "
+                f"Student's follow-up answer: {message}"
+            )
+            diagnosis = ai_generator.extract_and_predict(enriched_message)
+            # Preserve original symptoms if Cohere didn't re-extract them
+            if not diagnosis.get('extracted_symptoms'):
+                diagnosis['extracted_symptoms'] = original_symptoms
+            if not diagnosis.get('has_symptoms'):
+                diagnosis['has_symptoms'] = bool(original_symptoms)
+            # Clear follow-up state from session
+            session.topics_discussed = [t for t in topics if not (isinstance(t, dict) and t.get('_followup_pending'))]
+            session.save(update_fields=['topics_discussed'])
+            has_symptoms = diagnosis.get('has_symptoms', True)
+            logger.info(f"Follow-up answer received — enriched diagnosis: {diagnosis.get('predicted_disease')}")
 
-        # Step 2 – Generate chat response
+        else:
+            # ── Step 1 (normal): Cohere extracts symptoms + predicts disease ────
+            diagnosis = ai_generator.extract_and_predict(message)
+            has_symptoms = diagnosis.get('has_symptoms', False)
+            logger.info(
+                f"Cohere diagnosis: has_symptoms={has_symptoms}, "
+                f"symptoms={diagnosis.get('extracted_symptoms')}, "
+                f"disease={diagnosis.get('predicted_disease')}"
+            )
+
+            # ── Ask follow-up questions on FIRST symptom detection ───────────
+            if has_symptoms and diagnosis.get('extracted_symptoms'):
+                try:
+                    followup_response = ai_generator.generate_followup_questions(
+                        diagnosis['extracted_symptoms'], message
+                    )
+                except Exception as fq_err:
+                    logger.error(f"Follow-up question generation failed: {fq_err}")
+                    followup_response = None
+
+                if followup_response:
+                    # Save state so next message knows to skip straight to diagnosis
+                    new_state = {
+                        '_followup_pending': True,
+                        'original_message': message,
+                        'symptoms': diagnosis['extracted_symptoms'],
+                    }
+                    session.topics_discussed = [t for t in topics
+                                                if not (isinstance(t, dict) and t.get('_followup_pending'))]
+                    session.topics_discussed.append(new_state)
+                    session.save(update_fields=['topics_discussed'])
+                    return Response({
+                        'response': followup_response,
+                        'session_id': str(session.id),
+                        'awaiting_followup': True,
+                        'diagnosis_saved': False,
+                    })
+
+        # ── Step 2 – Generate full diagnostic chat response ───────────────────
         if has_symptoms and diagnosis.get('predicted_disease'):
             try:
                 response_text = ai_generator.generate_diagnosis_response(message, diagnosis)

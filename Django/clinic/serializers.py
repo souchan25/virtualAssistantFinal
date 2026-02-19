@@ -61,6 +61,7 @@ class SymptomRecordSerializer(serializers.ModelSerializer):
             'on_medication', 'medication_adherence',
             'is_communicable', 'is_acute', 'icd10_code',
             'requires_referral', 'referral_triggered', 'referral_date',
+            'staff_diagnosis', 'final_diagnosis',
             'created_at', 'updated_at'
         ]
         read_only_fields = [
