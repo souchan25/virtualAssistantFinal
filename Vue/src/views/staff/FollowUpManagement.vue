@@ -200,20 +200,51 @@
 
       <!-- Edit Diagnosis Modal -->
       <div v-if="editingFollowup" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" @click="editingFollowup = null">
-        <div class="bg-white rounded-lg max-w-lg w-full" @click.stop>
+        <div class="bg-white rounded-lg max-w-xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
           <div class="bg-blue-600 text-white p-5 rounded-t-lg">
-            <h2 class="text-xl font-bold">Edit Final Diagnosis</h2>
-            <p class="text-sm opacity-90">{{ editingFollowup.student_name }}</p>
+            <h2 class="text-xl font-bold">✏️ Edit Final Diagnosis</h2>
+            <p class="text-sm opacity-90">{{ editingFollowup.student_name }} · {{ editingFollowup.student_school_id }}</p>
           </div>
           <div class="p-6">
-            <div class="mb-4 bg-gray-50 rounded-lg p-4 text-sm">
-              <p><strong>AI Prediction:</strong> {{ editingFollowup.symptom_details?.predicted_disease || editingFollowup.original_condition || 'N/A' }}</p>
-              <p v-if="editingFollowup.symptom_details"><strong>Symptoms:</strong> {{ editingFollowup.symptom_details.symptoms?.join(', ') }}</p>
+            <!-- Clinical Summary -->
+            <div class="mb-5 bg-gray-50 rounded-lg p-4 space-y-3">
+              <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Clinical Summary</h3>
+              <div class="flex flex-wrap gap-2">
+                <span class="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full font-medium">
+                  🤖 AI: {{ editingFollowup.symptom_details?.predicted_disease || editingFollowup.original_condition || 'N/A' }}
+                </span>
+                <span v-if="editingFollowup.symptom_details?.confidence_score" class="px-3 py-1 bg-purple-100 text-purple-800 text-sm rounded-full">
+                  {{ (editingFollowup.symptom_details.confidence_score * 100).toFixed(0) }}% confidence
+                </span>
+                <span v-if="editingFollowup.symptom_details?.icd10_code" class="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded-full">
+                  ICD-10: {{ editingFollowup.symptom_details.icd10_code }}
+                </span>
+                <span v-if="editingFollowup.symptom_details?.is_communicable" class="px-3 py-1 bg-red-100 text-red-700 text-sm rounded-full">
+                  ⚠ Communicable
+                </span>
+              </div>
+              <div v-if="editingFollowup.symptom_details" class="grid grid-cols-2 gap-2 text-sm">
+                <p><span class="text-gray-500">Duration:</span> <strong>{{ editingFollowup.symptom_details.duration_days }} day(s)</strong></p>
+                <p><span class="text-gray-500">Severity:</span> <strong>{{ editingFollowup.symptom_details.severity === 1 ? 'Mild' : editingFollowup.symptom_details.severity === 2 ? 'Moderate' : editingFollowup.symptom_details.severity === 3 ? 'Severe' : editingFollowup.symptom_details.severity }}</strong></p>
+              </div>
+              <div v-if="editingFollowup.symptom_details?.symptoms?.length">
+                <p class="text-xs text-gray-500 mb-1">Reported symptoms:</p>
+                <div class="flex flex-wrap gap-1">
+                  <span v-for="(s, i) in editingFollowup.symptom_details.symptoms" :key="i"
+                    class="px-2 py-0.5 bg-white border border-gray-300 rounded-full text-xs">
+                    {{ s.replace(/_/g, ' ') }}
+                  </span>
+                </div>
+              </div>
+              <p v-if="editingFollowup.symptom_details?.staff_diagnosis" class="text-sm text-blue-700">
+                <span class="text-gray-500">Current Staff Diagnosis:</span> <strong>{{ editingFollowup.symptom_details.staff_diagnosis }}</strong>
+              </p>
             </div>
+            <!-- Input -->
             <div class="mb-6">
               <label class="block text-sm font-medium text-gray-700 mb-2">Staff Final Diagnosis</label>
               <input v-model="editDiagnosis" type="text" class="input-field w-full" placeholder="Enter corrected diagnosis..." />
-              <p class="text-xs text-gray-500 mt-1">This will override the AI prediction as the final diagnosis.</p>
+              <p class="text-xs text-gray-500 mt-1">This will override the AI prediction as the official final diagnosis.</p>
             </div>
             <div class="flex gap-4">
               <button @click="submitDiagnosisEdit" :disabled="diagnosisSubmitting || !editDiagnosis.trim()" class="btn-primary flex-1">
@@ -222,7 +253,7 @@
               </button>
               <button @click="editingFollowup = null" class="btn-outline flex-1">Cancel</button>
             </div>
-            <p v-if="diagnosisSuccess" class="mt-3 text-sm text-green-600 font-medium">Diagnosis updated successfully!</p>
+            <p v-if="diagnosisSuccess" class="mt-3 text-sm text-green-600 font-medium">✅ Diagnosis updated successfully!</p>
             <p v-if="diagnosisError" class="mt-3 text-sm text-red-600 font-medium">{{ diagnosisError }}</p>
           </div>
         </div>
@@ -230,49 +261,115 @@
 
       <!-- Review Modal -->
       <div v-if="reviewingFollowup" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click="closeReview">
-        <div class="bg-white rounded-lg max-w-2xl w-full" @click.stop>
+        <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
           <div class="bg-cpsu-green text-white p-6 rounded-t-lg">
-            <h2 class="text-2xl font-bold">Review Follow-up</h2>
-            <p class="text-sm opacity-90">{{ reviewingFollowup.student_name }}</p>
+            <h2 class="text-2xl font-bold">📋 Review Follow-up</h2>
+            <p class="text-sm opacity-90">{{ reviewingFollowup.student_name }} · {{ reviewingFollowup.student_school_id }}</p>
+            <p v-if="reviewingFollowup.student_department" class="text-xs opacity-75 mt-1">{{ reviewingFollowup.student_department }}</p>
           </div>
 
-          <div class="p-6">
-            <!-- Original Info -->
-            <div class="mb-6">
-              <h3 class="font-semibold text-gray-900 mb-2">Original Condition</h3>
-              <p class="text-gray-700 text-lg font-medium">{{ reviewingFollowup.original_condition || reviewingFollowup.symptom_disease || 'N/A' }}</p>
+          <div class="p-6 space-y-5">
 
-              <!-- Detailed description in modal -->
-              <div v-if="reviewingFollowup.symptom_details" class="mt-3 bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
-                <p><strong>Symptoms:</strong>
-                  <span v-for="(s, i) in reviewingFollowup.symptom_details.symptoms" :key="i" class="inline-block px-2 py-0.5 bg-white border border-gray-300 rounded-full text-xs mr-1 mt-1">
-                    {{ s.replace('_', ' ') }}
-                  </span>
-                </p>
-                <div class="grid grid-cols-2 gap-2">
-                  <p><strong>Severity:</strong> {{ reviewingFollowup.symptom_details.severity }}</p>
-                  <p><strong>Duration:</strong> {{ reviewingFollowup.symptom_details.duration_days }} day(s)</p>
-                  <p><strong>Confidence:</strong> {{ reviewingFollowup.symptom_details.confidence_score ? (reviewingFollowup.symptom_details.confidence_score * 100).toFixed(1) + '%' : 'N/A' }}</p>
-                  <p><strong>Communicable:</strong> {{ reviewingFollowup.symptom_details.is_communicable ? 'Yes' : 'No' }}</p>
-                </div>
-                <p v-if="reviewingFollowup.symptom_details.staff_diagnosis" class="text-blue-700">
-                  <strong>Staff Diagnosis:</strong> {{ reviewingFollowup.symptom_details.staff_diagnosis }}
-                </p>
+            <!-- Section 1: Diagnosis -->
+            <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+              <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">📋 Condition & Diagnosis</h3>
+              <p class="text-lg font-bold text-gray-900 mb-2">
+                {{ reviewingFollowup.symptom_details?.staff_diagnosis || reviewingFollowup.original_condition || reviewingFollowup.symptom_disease || 'N/A' }}
+              </p>
+              <div class="flex flex-wrap gap-2">
+                <span v-if="reviewingFollowup.symptom_details?.predicted_disease" class="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                  🤖 AI: {{ reviewingFollowup.symptom_details.predicted_disease }}
+                </span>
+                <span v-if="reviewingFollowup.symptom_details?.staff_diagnosis" class="px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full font-semibold">
+                  ✅ Staff: {{ reviewingFollowup.symptom_details.staff_diagnosis }}
+                </span>
+                <span v-if="reviewingFollowup.symptom_details?.confidence_score" class="px-3 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                  {{ (reviewingFollowup.symptom_details.confidence_score * 100).toFixed(0) }}% confidence
+                </span>
+                <span v-if="reviewingFollowup.symptom_details?.icd10_code" class="px-3 py-1 bg-gray-200 text-gray-700 text-xs rounded-full">
+                  ICD-10: {{ reviewingFollowup.symptom_details.icd10_code }}
+                </span>
+                <span v-if="reviewingFollowup.symptom_details?.is_communicable" class="px-3 py-1 bg-red-100 text-red-700 text-xs rounded-full">
+                  ⚠ Communicable
+                </span>
+                <span v-if="reviewingFollowup.symptom_details?.requires_referral" class="px-3 py-1 bg-orange-100 text-orange-700 text-xs rounded-full font-semibold">
+                  🏥 Referral Required
+                </span>
               </div>
             </div>
 
-            <!-- Student Response -->
-            <div v-if="reviewingFollowup.student_response" class="mb-6 bg-blue-50 p-4 rounded-lg">
-              <h3 class="font-semibold text-gray-900 mb-2">Student Response</h3>
-              <p class="text-gray-700">{{ reviewingFollowup.student_response }}</p>
+            <!-- Section 2: Symptoms -->
+            <div v-if="reviewingFollowup.symptom_details?.symptoms?.length" class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+              <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">🤒 Reported Symptoms</h3>
+              <div class="flex flex-wrap gap-2 mb-3">
+                <span
+                  v-for="(s, i) in reviewingFollowup.symptom_details.symptoms" :key="i"
+                  class="px-3 py-1 bg-white border border-gray-300 rounded-full text-sm text-gray-700"
+                >
+                  {{ s.replace(/_/g, ' ') }}
+                </span>
+              </div>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                <div class="bg-white rounded-lg p-2 border border-gray-200 text-center">
+                  <p class="text-xs text-gray-500">Duration</p>
+                  <p class="font-bold text-gray-800">{{ reviewingFollowup.symptom_details.duration_days }} day(s)</p>
+                </div>
+                <div class="bg-white rounded-lg p-2 border border-gray-200 text-center">
+                  <p class="text-xs text-gray-500">Severity</p>
+                  <p class="font-bold"
+                    :class="{
+                      'text-green-600': reviewingFollowup.symptom_details.severity === 1,
+                      'text-yellow-600': reviewingFollowup.symptom_details.severity === 2,
+                      'text-red-600': reviewingFollowup.symptom_details.severity === 3,
+                    }"
+                  >
+                    {{ reviewingFollowup.symptom_details.severity === 1 ? 'Mild' : reviewingFollowup.symptom_details.severity === 2 ? 'Moderate' : reviewingFollowup.symptom_details.severity === 3 ? 'Severe' : reviewingFollowup.symptom_details.severity || 'N/A' }}
+                  </p>
+                </div>
+                <div class="bg-white rounded-lg p-2 border border-gray-200 text-center">
+                  <p class="text-xs text-gray-500">AI Confidence</p>
+                  <p class="font-bold text-purple-700">
+                    {{ reviewingFollowup.symptom_details.confidence_score ? (reviewingFollowup.symptom_details.confidence_score * 100).toFixed(0) + '%' : 'N/A' }}
+                  </p>
+                </div>
+                <div class="bg-white rounded-lg p-2 border border-gray-200 text-center">
+                  <p class="text-xs text-gray-500">Type</p>
+                  <p class="font-bold text-gray-800">{{ reviewingFollowup.symptom_details.is_acute ? 'Acute' : 'Chronic' }}</p>
+                </div>
+              </div>
             </div>
 
-            <!-- Staff Notes Input -->
-            <div class="mb-6">
+            <!-- Section 3: Schedule info -->
+            <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+              <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">📅 Follow-up Info</h3>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                <p><span class="text-gray-500">Scheduled:</span> <strong>{{ formatDate(reviewingFollowup.scheduled_date) }}</strong></p>
+                <p><span class="text-gray-500">Submitted:</span> <strong>{{ formatDate(reviewingFollowup.created_at) }}</strong></p>
+                <p v-if="reviewingFollowup.completed_at"><span class="text-gray-500">Completed:</span> <strong class="text-green-600">{{ formatDate(reviewingFollowup.completed_at) }}</strong></p>
+                <p v-if="reviewingFollowup.reason"><span class="text-gray-500">Reason:</span> <strong>{{ reviewingFollowup.reason }}</strong></p>
+              </div>
+            </div>
+
+            <!-- Section 4: Student Response -->
+            <div v-if="reviewingFollowup.student_response" class="bg-blue-50 rounded-xl p-4 border border-blue-200">
+              <h3 class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-2">💬 Student Response</h3>
+              <p class="text-gray-800 text-sm">{{ reviewingFollowup.student_response }}</p>
+              <p v-if="reviewingFollowup.response_date" class="text-xs text-gray-500 mt-2">Responded: {{ formatDate(reviewingFollowup.response_date) }}</p>
+            </div>
+
+            <!-- Section 5: Existing staff notes (view mode) -->
+            <div v-if="reviewingFollowup.staff_notes" class="bg-green-50 rounded-xl p-4 border border-green-200">
+              <h3 class="text-xs font-bold text-green-600 uppercase tracking-widest mb-2">📝 Previous Staff Notes</h3>
+              <p class="text-gray-800 text-sm">{{ reviewingFollowup.staff_notes }}</p>
+              <p class="text-xs text-gray-500 mt-2">By {{ reviewingFollowup.reviewed_by_name }} on {{ formatDate(reviewingFollowup.reviewed_at) }}</p>
+            </div>
+
+            <!-- Section 6: Staff Notes Input -->
+            <div v-if="['needs_review', 'pending'].includes(reviewingFollowup.status)">
               <label class="block text-sm font-medium text-gray-700 mb-2">Staff Notes & Recommendations</label>
               <textarea
                 v-model="staffNotes"
-                rows="5"
+                rows="4"
                 class="input-field w-full"
                 placeholder="Add your clinical notes, recommendations, or next steps..."
               ></textarea>
@@ -280,11 +377,16 @@
 
             <!-- Action Buttons -->
             <div class="flex gap-4">
-              <button @click="submitReview" :disabled="submitting || !staffNotes.trim()" class="btn-primary flex-1">
+              <button
+                v-if="['needs_review', 'pending'].includes(reviewingFollowup.status)"
+                @click="submitReview"
+                :disabled="submitting || !staffNotes.trim()"
+                class="btn-primary flex-1"
+              >
                 <span v-if="submitting">Submitting...</span>
                 <span v-else>✅ Submit Review</span>
               </button>
-              <button @click="closeReview" class="btn-outline flex-1">Cancel</button>
+              <button @click="closeReview" class="btn-outline flex-1">Close</button>
             </div>
           </div>
         </div>
