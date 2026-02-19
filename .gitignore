@@ -55,6 +55,7 @@ cleanup_archive/
 # Deployment guides with secrets
 AZURE_LLM_FIX_GUIDE.md
 DEPLOYMENT_STEPS.md
+DEPLOYMENT_READINESS_REPORT.md
 
 # Python
 __pycache__/
