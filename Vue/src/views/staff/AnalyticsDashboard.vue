@@ -13,30 +13,7 @@
           </div>
           <button @click="$router.push('/staff')" class="btn-outline !py-2 !px-4">Back to Dashboard</button>
         </div>
-        <!-- Navigation Menu -->
-        <div class="flex items-center space-x-4 border-t pt-3">
-          <router-link to="/staff" class="text-gray-700 hover:text-cpsu-green font-medium">
-            📊 Dashboard
-          </router-link>
-          <router-link to="/staff/emergencies" class="text-gray-700 hover:text-cpsu-green font-medium">
-            🚨 Emergencies
-          </router-link>
-          <router-link to="/staff/students" class="text-gray-700 hover:text-cpsu-green font-medium">
-            👥 Students
-          </router-link>
-          <router-link to="/staff/prescribe" class="text-gray-700 hover:text-cpsu-green font-medium">
-            💊 Prescribe
-          </router-link>
-          <router-link to="/staff/adherence" class="text-gray-700 hover:text-cpsu-green font-medium">
-            📈 Adherence
-          </router-link>
-          <router-link to="/staff/followups" class="text-gray-700 hover:text-cpsu-green font-medium">
-            📋 Follow-Ups
-          </router-link>
-          <router-link to="/staff/analytics" class="text-cpsu-green font-semibold">
-            📉 Analytics
-          </router-link>
-        </div>
+        <StaffNavigation />
       </div>
     </nav>
 
@@ -184,6 +161,7 @@ import {
   Legend
 } from 'chart.js'
 import api from '@/services/api'
+import StaffNavigation from '@/components/StaffNavigation.vue'
 
 // Register Chart.js components
 ChartJS.register(
