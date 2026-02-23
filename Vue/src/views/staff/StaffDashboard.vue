@@ -147,7 +147,7 @@
 
         <div v-else>
           <!-- Stats Cards -->
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
             <div class="card-bordered bg-white hover:shadow-lg transition">
               <div class="flex items-center justify-between">
                 <div>
@@ -222,7 +222,7 @@
           </div>
 
           <!-- Monthly Summary -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
             <div class="card bg-white border-l-4 border-cpsu-green">
               <h3 class="text-sm font-semibold text-gray-600 mb-2">
                 This Month (30 Days)
@@ -267,11 +267,11 @@
           <!-- Tabs -->
           <div class="bg-white rounded-lg shadow-sm border-2 border-gray-200">
             <div class="border-b border-gray-200">
-              <div class="flex space-x-1 p-1">
+              <div class="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-1 p-1">
                 <button
                   @click="activeTab = 'overview'"
                   :class="[
-                    'px-6 py-3 font-medium rounded-t-lg transition',
+                    'px-6 py-3 font-medium rounded-md sm:rounded-t-lg transition',
                     activeTab === 'overview'
                       ? 'bg-cpsu-green text-white'
                       : 'text-gray-600 hover:bg-gray-100',
@@ -282,7 +282,7 @@
                 <button
                   @click="activeTab = 'students'"
                   :class="[
-                    'px-6 py-3 font-medium rounded-t-lg transition',
+                    'px-6 py-3 font-medium rounded-md sm:rounded-t-lg transition',
                     activeTab === 'students'
                       ? 'bg-cpsu-green text-white'
                       : 'text-gray-600 hover:bg-gray-100',
@@ -293,7 +293,7 @@
                 <button
                   @click="activeTab = 'reports'"
                   :class="[
-                    'px-6 py-3 font-medium rounded-t-lg transition',
+                    'px-6 py-3 font-medium rounded-md sm:rounded-t-lg transition',
                     activeTab === 'reports'
                       ? 'bg-cpsu-green text-white'
                       : 'text-gray-600 hover:bg-gray-100',
@@ -416,7 +416,7 @@
                     <div
                       v-for="record in stats.recent_symptoms"
                       :key="record.id"
-                      class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+                      class="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
                     >
                       <div class="flex-1">
                         <div class="flex items-center space-x-2 mb-1">
@@ -430,7 +430,7 @@
                         <p class="text-sm text-gray-600 font-semibold">
                           {{ record.predicted_disease }}
                         </p>
-                        <div class="flex items-center space-x-2 mt-1">
+                        <div class="flex flex-wrap items-center gap-2 mt-1">
                           <span
                             class="text-xs px-2 py-1 rounded"
                             :class="
@@ -455,7 +455,7 @@
                           Symptoms: {{ record.symptoms?.join(", ") || "N/A" }}
                         </p>
                       </div>
-                      <div class="text-right ml-4">
+                      <div class="text-left sm:text-right sm:ml-4 mt-2 sm:mt-0">
                         <p class="text-sm text-gray-600">
                           {{ formatDate(record.created_at) }}
                         </p>
