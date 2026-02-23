@@ -13,30 +13,7 @@
           </div>
           <button @click="$router.push('/staff')" class="btn-outline !py-2 !px-4">Back to Dashboard</button>
         </div>
-        <!-- Navigation Menu -->
-        <div class="flex items-center space-x-4 border-t pt-3">
-          <router-link to="/staff" class="text-gray-700 hover:text-cpsu-green font-medium">
-            📊 Dashboard
-          </router-link>
-          <router-link to="/staff/emergencies" class="text-gray-700 hover:text-cpsu-green font-medium">
-            🚨 Emergencies
-          </router-link>
-          <router-link to="/staff/students" class="text-cpsu-green font-semibold">
-            👥 Students
-          </router-link>
-          <router-link to="/staff/prescribe" class="text-gray-700 hover:text-cpsu-green font-medium">
-            💊 Prescribe
-          </router-link>
-          <router-link to="/staff/adherence" class="text-gray-700 hover:text-cpsu-green font-medium">
-            📈 Adherence
-          </router-link>
-          <router-link to="/staff/followups" class="text-gray-700 hover:text-cpsu-green font-medium">
-            📋 Follow-Ups
-          </router-link>
-          <router-link to="/staff/analytics" class="text-gray-700 hover:text-cpsu-green font-medium">
-            📉 Analytics
-          </router-link>
-        </div>
+        <StaffNavigation />
       </div>
     </nav>
 
@@ -152,9 +129,9 @@
       </div>
 
       <!-- Student Detail Modal -->
-      <div v-if="selectedStudent" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click="selectedStudent = null">
-        <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl" @click.stop>
-          <div class="sticky top-0 bg-white border-b-2 border-cpsu-green p-4 sm:p-6">
+      <div v-if="selectedStudent" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-0 sm:p-4" @click="selectedStudent = null">
+        <div class="bg-white w-full h-full sm:h-auto sm:rounded-lg sm:max-w-4xl sm:max-h-[90vh] overflow-y-auto shadow-xl" @click.stop>
+          <div class="sticky top-0 bg-white border-b-2 border-cpsu-green p-4 sm:p-6 sm:rounded-t-lg">
             <div class="flex justify-between items-start">
               <div>
                 <h2 class="text-xl sm:text-2xl font-bold text-gray-900">{{ selectedStudent.name }}</h2>
@@ -261,9 +238,9 @@
       </div>
 
       <!-- Edit Diagnosis Modal -->
-      <div v-if="editingReport" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" @click="editingReport = null">
-        <div class="bg-white rounded-lg max-w-lg w-full shadow-xl" @click.stop>
-          <div class="bg-cpsu-green text-white p-4 sm:p-5 rounded-t-lg">
+      <div v-if="editingReport" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-0 sm:p-4" @click="editingReport = null">
+        <div class="bg-white w-full h-full sm:h-auto sm:rounded-lg sm:max-w-lg shadow-xl" @click.stop>
+          <div class="bg-cpsu-green text-white p-4 sm:p-5 sm:rounded-t-lg">
             <h2 class="text-xl font-bold">Edit Final Diagnosis</h2>
             <p class="text-sm opacity-90">{{ editingReport.predicted_disease }}</p>
           </div>
@@ -319,6 +296,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
+import StaffNavigation from '@/components/StaffNavigation.vue'
 
 const router = useRouter()
 
