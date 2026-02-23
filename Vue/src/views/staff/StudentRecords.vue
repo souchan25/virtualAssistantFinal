@@ -153,22 +153,22 @@
 
       <!-- Student Detail Modal -->
       <div v-if="selectedStudent" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click="selectedStudent = null">
-        <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
-          <div class="sticky top-0 bg-white border-b-2 border-cpsu-green p-6">
+        <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl" @click.stop>
+          <div class="sticky top-0 bg-white border-b-2 border-cpsu-green p-4 sm:p-6">
             <div class="flex justify-between items-start">
               <div>
-                <h2 class="text-2xl font-bold text-gray-900">{{ selectedStudent.name }}</h2>
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-900">{{ selectedStudent.name }}</h2>
                 <p class="text-gray-600">{{ selectedStudent.school_id }} • {{ selectedStudent.department }}</p>
               </div>
               <button @click="selectedStudent = null" class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
             </div>
           </div>
 
-          <div class="p-6 space-y-6">
+          <div class="p-4 sm:p-6 space-y-4 sm:space-y-6">
             <!-- Health Summary -->
             <div>
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">Health Summary</h3>
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <h3 class="text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Health Summary</h3>
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                 <div class="bg-gray-50 p-4 rounded-lg">
                   <p class="text-sm text-gray-600">Total Visits</p>
                   <p class="text-2xl font-bold text-cpsu-green">{{ selectedStudent.total_visits || 0 }}</p>
@@ -248,11 +248,11 @@
             </div>
 
             <!-- Action Buttons -->
-            <div class="flex gap-4 pt-4 border-t">
-              <button @click="prescribeMedication(selectedStudent)" class="btn-primary flex-1">
+            <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 border-t">
+              <button @click="prescribeMedication(selectedStudent)" class="btn-primary flex-1 justify-center">
                 💊 Prescribe Medication
               </button>
-              <button @click="selectedStudent = null" class="btn-outline flex-1">
+              <button @click="selectedStudent = null" class="btn-outline flex-1 justify-center">
                 Close
               </button>
             </div>
@@ -262,15 +262,15 @@
 
       <!-- Edit Diagnosis Modal -->
       <div v-if="editingReport" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" @click="editingReport = null">
-        <div class="bg-white rounded-lg max-w-lg w-full" @click.stop>
-          <div class="bg-cpsu-green text-white p-5 rounded-t-lg">
+        <div class="bg-white rounded-lg max-w-lg w-full shadow-xl" @click.stop>
+          <div class="bg-cpsu-green text-white p-4 sm:p-5 rounded-t-lg">
             <h2 class="text-xl font-bold">Edit Final Diagnosis</h2>
             <p class="text-sm opacity-90">{{ editingReport.predicted_disease }}</p>
           </div>
 
-          <div class="p-6">
+          <div class="p-4 sm:p-6">
             <!-- Current Info -->
-            <div class="mb-4 bg-gray-50 rounded-lg p-4 text-sm">
+            <div class="mb-4 bg-gray-50 rounded-lg p-3 sm:p-4 text-sm">
               <p><strong>AI Prediction:</strong> {{ editingReport.predicted_disease }}</p>
               <p><strong>Symptoms:</strong> {{ editingReport.symptoms?.join(', ') || 'N/A' }}</p>
               <p><strong>Confidence:</strong> {{ editingReport.confidence ? (editingReport.confidence * 100).toFixed(1) + '%' : 'N/A' }}</p>
@@ -293,16 +293,16 @@
             </div>
 
             <!-- Action Buttons -->
-            <div class="flex gap-4">
+            <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <button
                 @click="submitDiagnosisEdit"
                 :disabled="diagnosisSubmitting || !newDiagnosis.trim()"
-                class="btn-primary flex-1"
+                class="btn-primary flex-1 justify-center"
               >
                 <span v-if="diagnosisSubmitting">Saving...</span>
                 <span v-else>Save Diagnosis</span>
               </button>
-              <button @click="editingReport = null" class="btn-outline flex-1">Cancel</button>
+              <button @click="editingReport = null" class="btn-outline flex-1 justify-center">Cancel</button>
             </div>
 
             <!-- Success/Error Messages -->
