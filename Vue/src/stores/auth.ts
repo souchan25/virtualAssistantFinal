@@ -1,12 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import api from '@/services/api'
+import { getToken, setToken, removeToken } from '@/services/tokenService'
 import type { User, LoginCredentials, RegisterData } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
   const user = ref<User | null>(null)
-  const token = ref<string | null>(localStorage.getItem('auth_token'))
+  const token = ref<string | null>(getToken())
   const loading = ref(false)
   const error = ref<string | null>(null)
 
@@ -15,7 +16,7 @@ export const useAuthStore = defineStore('auth', () => {
   const userName = computed(() => user.value?.name || '')
 
   // Actions
-  async function login(credentials: LoginCredentials) {
+  async function login(credentials: LoginCredentials, rememberMe: boolean = false) {
     loading.value = true
     error.value = null
     
@@ -24,8 +25,8 @@ export const useAuthStore = defineStore('auth', () => {
       token.value = response.data.token
       user.value = response.data.user
       
-      // Save token to localStorage
-      localStorage.setItem('auth_token', response.data.token)
+      // Save token to storage based on remember me preference
+      setToken(response.data.token, rememberMe)
       
       return true
     } catch (err: any) {
@@ -59,8 +60,8 @@ export const useAuthStore = defineStore('auth', () => {
       token.value = response.data.token
       user.value = response.data.user
       
-      // Save token to localStorage
-      localStorage.setItem('auth_token', response.data.token)
+      // Save token to localStorage by default for registration
+      setToken(response.data.token, true)
       
       return true
     } catch (err: any) {
@@ -94,7 +95,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Clear state regardless of API call success
       user.value = null
       token.value = null
-      localStorage.removeItem('auth_token')
+      removeToken()
     }
   }
 
