@@ -85,6 +85,19 @@
             </div>
           </div>
 
+          <!-- Remember Me -->
+          <div class="flex items-center">
+            <input
+              id="remember-me"
+              v-model="rememberMe"
+              type="checkbox"
+              class="h-4 w-4 text-cpsu-green focus:ring-cpsu-green border-gray-300 rounded"
+            />
+            <label for="remember-me" class="ml-2 block text-sm text-gray-900">
+              Remember me
+            </label>
+          </div>
+
           <!-- Submit Button -->
           <button
             type="submit"
@@ -123,10 +136,11 @@ const credentials = ref({
   password: ''
 })
 
+const rememberMe = ref(false)
 const showPassword = ref(false)
 
 async function handleLogin() {
-  const success = await authStore.login(credentials.value)
+  const success = await authStore.login(credentials.value, rememberMe.value)
   
   if (success) {
     // Redirect based on user role

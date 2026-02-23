@@ -1,5 +1,6 @@
 import axios from 'axios'
 import type { AxiosInstance } from 'axios'
+import { getToken, removeToken } from './tokenService'
 
 const api: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
@@ -12,7 +13,7 @@ const api: AxiosInstance = axios.create({
 // Request interceptor - Add auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('auth_token')
+    const token = getToken()
     if (token) {
       config.headers.Authorization = `Token ${token}`
     }
@@ -29,7 +30,7 @@ api.interceptors.response.use(
   (error) => {
     // Handle 401 - Unauthorized (token expired/invalid)
     if (error.response?.status === 401) {
-      localStorage.removeItem('auth_token')
+      removeToken()
       // Redirect to login if not already there
       if (window.location.pathname !== '/login') {
         window.location.href = '/login'
