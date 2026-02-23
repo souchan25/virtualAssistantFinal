@@ -171,25 +171,25 @@
             </div>
 
             <!-- Action Buttons -->
-            <div class="flex gap-3 pt-4 border-t">
+            <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t">
               <button
                 v-if="['needs_review', 'pending'].includes(followup.status)"
                 @click="reviewFollowup(followup)"
-                class="btn-primary flex-1"
+                class="btn-primary flex-1 justify-center"
               >
                 📝 Review & Add Notes
               </button>
               <button
                 v-else
                 @click="viewFollowup(followup)"
-                class="btn-outline flex-1"
+                class="btn-outline flex-1 justify-center"
               >
                 📄 View Record
               </button>
               <button
                 v-if="followup.symptom_record"
                 @click="openEditDiagnosis(followup)"
-                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex-1 sm:flex-none justify-center"
               >
                 ✏️ Edit Diagnosis
               </button>
@@ -200,14 +200,14 @@
 
       <!-- Edit Diagnosis Modal -->
       <div v-if="editingFollowup" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" @click="editingFollowup = null">
-        <div class="bg-white rounded-lg max-w-xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
-          <div class="bg-blue-600 text-white p-5 rounded-t-lg">
+        <div class="bg-white rounded-lg max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-xl" @click.stop>
+          <div class="bg-blue-600 text-white p-4 sm:p-5 rounded-t-lg">
             <h2 class="text-xl font-bold">✏️ Edit Final Diagnosis</h2>
             <p class="text-sm opacity-90">{{ editingFollowup.student_name }} · {{ editingFollowup.student_school_id }}</p>
           </div>
-          <div class="p-6">
+          <div class="p-4 sm:p-6">
             <!-- Clinical Summary -->
-            <div class="mb-5 bg-gray-50 rounded-lg p-4 space-y-3">
+            <div class="mb-5 bg-gray-50 rounded-lg p-3 sm:p-4 space-y-3">
               <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wide">Clinical Summary</h3>
               <div class="flex flex-wrap gap-2">
                 <span class="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full font-medium">
@@ -246,12 +246,12 @@
               <input v-model="editDiagnosis" type="text" class="input-field w-full" placeholder="Enter corrected diagnosis..." />
               <p class="text-xs text-gray-500 mt-1">This will override the AI prediction as the official final diagnosis.</p>
             </div>
-            <div class="flex gap-4">
-              <button @click="submitDiagnosisEdit" :disabled="diagnosisSubmitting || !editDiagnosis.trim()" class="btn-primary flex-1">
+            <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <button @click="submitDiagnosisEdit" :disabled="diagnosisSubmitting || !editDiagnosis.trim()" class="btn-primary flex-1 justify-center">
                 <span v-if="diagnosisSubmitting">Saving...</span>
                 <span v-else>Save Diagnosis</span>
               </button>
-              <button @click="editingFollowup = null" class="btn-outline flex-1">Cancel</button>
+              <button @click="editingFollowup = null" class="btn-outline flex-1 justify-center">Cancel</button>
             </div>
             <p v-if="diagnosisSuccess" class="mt-3 text-sm text-green-600 font-medium">✅ Diagnosis updated successfully!</p>
             <p v-if="diagnosisError" class="mt-3 text-sm text-red-600 font-medium">{{ diagnosisError }}</p>
@@ -261,14 +261,14 @@
 
       <!-- Review Modal -->
       <div v-if="reviewingFollowup" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click="closeReview">
-        <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
-          <div class="bg-cpsu-green text-white p-6 rounded-t-lg">
-            <h2 class="text-2xl font-bold">📋 Review Follow-up</h2>
+        <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl" @click.stop>
+          <div class="bg-cpsu-green text-white p-4 sm:p-6 rounded-t-lg">
+            <h2 class="text-xl sm:text-2xl font-bold">📋 Review Follow-up</h2>
             <p class="text-sm opacity-90">{{ reviewingFollowup.student_name }} · {{ reviewingFollowup.student_school_id }}</p>
             <p v-if="reviewingFollowup.student_department" class="text-xs opacity-75 mt-1">{{ reviewingFollowup.student_department }}</p>
           </div>
 
-          <div class="p-6 space-y-5">
+          <div class="p-4 sm:p-6 space-y-4 sm:space-y-5">
 
             <!-- Section 1: Diagnosis -->
             <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
@@ -376,17 +376,17 @@
             </div>
 
             <!-- Action Buttons -->
-            <div class="flex gap-4">
+            <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <button
                 v-if="['needs_review', 'pending'].includes(reviewingFollowup.status)"
                 @click="submitReview"
                 :disabled="submitting || !staffNotes.trim()"
-                class="btn-primary flex-1"
+                class="btn-primary flex-1 justify-center"
               >
                 <span v-if="submitting">Submitting...</span>
                 <span v-else>✅ Submit Review</span>
               </button>
-              <button @click="closeReview" class="btn-outline flex-1">Close</button>
+              <button @click="closeReview" class="btn-outline flex-1 justify-center">Close</button>
             </div>
           </div>
         </div>
