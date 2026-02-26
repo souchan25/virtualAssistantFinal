@@ -296,6 +296,7 @@
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/services/api'
+import { setToken } from '@/services/tokenService'
 import StaffNavigation from '@/components/StaffNavigation.vue'
 
 const authStore = useAuthStore()
@@ -352,7 +353,8 @@ async function handleChangePassword() {
     
     // Update token in store if provided
     if (res.data.token) {
-      authStore.setToken(res.data.token)
+      authStore.token = res.data.token
+      setToken(res.data.token, true)
     }
     
     passwordSuccess.value = 'Password changed successfully!'
