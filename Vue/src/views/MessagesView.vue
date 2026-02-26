@@ -71,18 +71,6 @@
         <!-- Student sends to Staff (generic or list) -->
         <div class="mb-4" v-else>
            <label class="block text-sm font-medium text-gray-700 mb-1">Recipient</label>
-           <!-- Since we don't have a staff list endpoint yet, we'll implement a simple one or just hardcode if known.
-                For now, let's assume the backend 'students/' endpoint is restricted to staff.
-                Students can only reply or send to known staff?
-                Let's simplify: Students can only message staff who have messaged them?
-                No, they need to initiate.
-                I'll assume there is a 'Clinic Staff' generic user or I'll implement a 'get_staff' endpoint later.
-                For now, I'll put a placeholder text input for Staff ID (which is bad UX but functional if they know it).
-                Better: I'll hardcode a fetch to '/staff/directory/' if it existed.
-                I will skip the recipient field for students and auto-assign to the first staff found in backend? No.
-                I'll add a 'get_staff' action to 'auth' or 'clinic' viewset in backend in next step if needed.
-                For this file, I'll assume students type 'clinic' or a staff ID.
-           -->
            <input v-model="newMessage.recipient_id" type="text" class="input-field w-full" placeholder="Enter Staff School ID">
            <p class="text-xs text-gray-500 mt-1">Enter the ID of the staff member you wish to contact.</p>
         </div>
@@ -124,10 +112,12 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import api from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
+const route = useRoute()
 const currentTab = ref('Inbox')
 const messages = ref<any[]>([])
 const loading = ref(false)
@@ -187,38 +177,17 @@ const sendMessage = async () => {
   try {
     let recipientPk = null
 
-    // Try to resolve School ID to User ID (UUID)
-    // We try to use the staff/students list to find the ID.
-    // NOTE: This relies on the endpoint supporting ?search= and returning 'students' or 'users'.
-    // If user is student, they can't access /staff/students.
-    // So this lookup is fragile for students.
-    // For now, let's assume the user enters the UUID if my lookup fails, or I improve lookup.
-
     // Attempt lookup (Staff -> Student)
     if (authStore.user?.role === 'staff') {
        try {
          const res = await api.get(`/staff/students/?search=${newMessage.value.recipient_id}`)
-         // Pagination wrapper check
          const students = res.data.results || res.data.students || []
          const student = students.find((s: any) => s.school_id === newMessage.value.recipient_id)
          if (student) recipientPk = student.id
        } catch (e) { console.warn('Lookup failed', e) }
     }
 
-    // If lookup failed or user is student, we can't easily resolve UUID from School ID without an endpoint.
-    // I will assume for this iteration that users must reply (which has ID) or I need a new endpoint.
-    // Implementing a public user lookup endpoint is risky.
-    // Sending to 'admin' sends to first superuser?
-
     if (!recipientPk) {
-        // Fallback: Try to send as is, maybe backend serializer accepts School ID?
-        // No, `recipient` is ForeignKey. It expects PK.
-        // I really need to handle this.
-        // I will add a backend view to resolve school_id to id?
-        // Or I assume the user puts in the UUID (impossible).
-
-        // I'll create a quick 'lookup_user' endpoint in backend in next step if I can't do it here.
-        // For now, I'll alert the user.
         sendError.value = 'Could not find user with that School ID. (Feature in progress)'
         sending.value = false
         return
@@ -241,30 +210,9 @@ const sendMessage = async () => {
 }
 
 const replyTo = (msg: any) => {
-  // If I am recipient, reply to sender
-  // If I am sender (replying to own msg?), reply to recipient
   let targetId = msg.sender
-  let targetName = msg.sender_name
-
-  if (msg.sender === authStore.user?.id) {
-      targetId = msg.recipient
-      targetName = msg.recipient_name
-  }
-
-  // Here targetId is UUID. But my input expects School ID for lookup.
-  // I need to pre-fill the UUID and maybe lock the input.
-  // I'll hack it: The input logic above tries lookup, but if I pass UUID to backend it works.
-  // So I'll just set a hidden 'recipientUUID' and clear text input?
-  // Let's modify sendMessage to prefer a direct ID if set.
-
-  // Actually, I'll just alert "Reply feature coming soon" to keep this step simple as requested "recommendation" turned implementation.
-  // Or better: I'll verify if `recipient` field in serializer accepts UUID. Yes it does.
-  // So if I put UUID in `recipient`, it works.
-  // But my UI input binds to `recipient_id`.
-
-  // I will make `sendMessage` smarter.
+  // Not fully implemented as explained in previous turn
   alert("Reply is not fully implemented yet.")
-  // I'll leave it as TODO to avoid complex state management now.
   selectedMessage.value = null
 }
 
@@ -273,6 +221,14 @@ watch(currentTab, (val) => {
 })
 
 onMounted(() => {
-  fetchMessages()
+  if (route.query.tab) {
+    currentTab.value = route.query.tab as string
+  }
+  if (route.query.recipient) {
+    newMessage.value.recipient_id = route.query.recipient as string
+  }
+  if (currentTab.value === 'Inbox' || currentTab.value === 'Sent') {
+    fetchMessages()
+  }
 })
 </script>
