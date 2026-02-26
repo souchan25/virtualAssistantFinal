@@ -29,7 +29,7 @@
                   CPSU Health Clinic
                 </h1>
                 <p class="text-xs sm:text-sm text-gray-600">
-                  Staff Dashboard - {{ authStore.user?.name }}
+                  Staff Dashboard - <router-link to="/profile" class="hover:text-cpsu-green hover:underline">{{ authStore.user?.name }}</router-link>
                 </p>
               </div>
             </div>
@@ -130,49 +130,6 @@
             </div>
           </div>
 
-          <!-- Monthly Summary -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
-            <div class="card bg-white border-l-4 border-cpsu-green">
-              <h3 class="text-sm font-semibold text-gray-600 mb-2">
-                This Month (30 Days)
-              </h3>
-              <p class="text-2xl font-bold text-cpsu-green">
-                {{ stats.students_with_symptoms_30days || 0 }} students
-              </p>
-              <p class="text-sm text-gray-500 mt-1">Had consultations</p>
-            </div>
-
-            <div class="card bg-white border-l-4 border-blue-500">
-              <h3 class="text-sm font-semibold text-gray-600 mb-2">
-                Active Rate
-              </h3>
-              <p class="text-2xl font-bold text-blue-600">
-                {{
-                  stats.total_students > 0
-                    ? (
-                        (stats.students_with_symptoms_30days /
-                          stats.total_students) *
-                        100
-                      ).toFixed(1)
-                    : 0
-                }}%
-              </p>
-              <p class="text-sm text-gray-500 mt-1">
-                Students consulted this month
-              </p>
-            </div>
-
-            <div class="card bg-white border-l-4 border-purple-500">
-              <h3 class="text-sm font-semibold text-gray-600 mb-2">
-                Departments
-              </h3>
-              <p class="text-2xl font-bold text-purple-600">
-                {{ stats.department_breakdown?.length || 0 }}
-              </p>
-              <p class="text-sm text-gray-500 mt-1">Active departments</p>
-            </div>
-          </div>
-
           <!-- Tabs -->
           <div class="bg-white rounded-lg shadow-sm border-2 border-gray-200">
             <div class="border-b border-gray-200">
@@ -187,17 +144,6 @@
                   ]"
                 >
                   Overview
-                </button>
-                <button
-                  @click="activeTab = 'students'"
-                  :class="[
-                    'px-6 py-3 font-medium rounded-md sm:rounded-t-lg transition',
-                    activeTab === 'students'
-                      ? 'bg-cpsu-green text-white'
-                      : 'text-gray-600 hover:bg-gray-100',
-                  ]"
-                >
-                  Student Directory
                 </button>
                 <button
                   @click="activeTab = 'reports'"
@@ -216,167 +162,113 @@
             <div class="p-6">
               <!-- Overview Tab -->
               <div v-if="activeTab === 'overview'" class="space-y-6">
-                <!-- Department Breakdown -->
-                <div>
-                  <h3 class="text-lg font-semibold text-gray-900 mb-4">
-                    Department Breakdown (Last 30 Days)
-                  </h3>
 
-                  <!-- Empty State -->
-                  <div
-                    v-if="
-                      !stats.department_breakdown ||
-                      stats.department_breakdown.length === 0
-                    "
-                    class="text-center py-8 bg-gray-50 rounded-lg"
-                  >
-                    <div class="text-5xl mb-3">🏢</div>
-                    <p class="text-gray-600">No department data available</p>
-                  </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Department Breakdown -->
+                    <div>
+                      <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                        Department Breakdown (Last 30 Days)
+                      </h3>
 
-                  <!-- Department Table -->
-                  <div v-else class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                      <thead class="bg-gray-50">
-                        <tr>
-                          <th
-                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
-                          >
-                            Department
-                          </th>
-                          <th
-                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
-                          >
-                            Total Students
-                          </th>
-                          <th
-                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
-                          >
-                            With Symptoms
-                          </th>
-                          <th
-                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
-                          >
-                            % Affected
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody class="bg-white divide-y divide-gray-200">
-                        <tr
-                          v-for="dept in stats.department_breakdown"
-                          :key="dept.department"
-                          class="hover:bg-gray-50"
-                        >
-                          <td
-                            class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"
-                          >
-                            {{ dept.department }}
-                          </td>
-                          <td
-                            class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
-                          >
-                            {{ dept.total_students }}
-                          </td>
-                          <td
-                            class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
-                          >
-                            {{ dept.students_with_symptoms }}
-                          </td>
-                          <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            <span
-                              class="px-2 py-1 rounded"
-                              :class="
-                                dept.percentage >= 30
-                                  ? 'bg-red-100 text-red-800'
-                                  : dept.percentage >= 15
-                                    ? 'bg-yellow-100 text-yellow-800'
-                                    : 'bg-green-100 text-green-800'
-                              "
-                            >
-                              {{ dept.percentage }}%
-                            </span>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                <!-- Recent Activity -->
-                <div>
-                  <h3 class="text-lg font-semibold text-gray-900 mb-4">
-                    Recent Consultations
-                  </h3>
-
-                  <!-- Empty State -->
-                  <div
-                    v-if="
-                      !stats.recent_symptoms ||
-                      stats.recent_symptoms.length === 0
-                    "
-                    class="text-center py-8 bg-gray-50 rounded-lg"
-                  >
-                    <div class="text-5xl mb-3">📋</div>
-                    <p class="text-gray-600">No recent consultations</p>
-                  </div>
-
-                  <!-- Recent Records -->
-                  <div v-else class="space-y-3">
-                    <div
-                      v-for="record in stats.recent_symptoms"
-                      :key="record.id"
-                      class="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
-                    >
-                      <div class="flex-1">
-                        <div class="flex items-center space-x-2 mb-1">
-                          <p class="font-medium text-gray-900">
-                            {{ record.student_name || "Student" }}
-                          </p>
-                          <span class="text-xs text-gray-500">{{
-                            record.student_school_id || ""
-                          }}</span>
-                        </div>
-                        <p class="text-sm text-gray-600 font-semibold">
-                          {{ record.predicted_disease }}
-                        </p>
-                        <div class="flex flex-wrap items-center gap-2 mt-1">
-                          <span
-                            class="text-xs px-2 py-1 rounded"
-                            :class="
-                              record.confidence_score >= 0.8
-                                ? 'bg-green-100 text-green-800'
-                                : record.confidence_score >= 0.6
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-red-100 text-red-800'
-                            "
-                          >
-                            {{ (record.confidence_score * 100).toFixed(1) }}%
-                            confidence
-                          </span>
-                          <span
-                            v-if="record.requires_referral"
-                            class="text-xs px-2 py-1 bg-red-100 text-red-800 rounded"
-                          >
-                            🚨 Referral Required
-                          </span>
-                        </div>
-                        <p class="text-xs text-gray-500 mt-1">
-                          Symptoms: {{ record.symptoms?.join(", ") || "N/A" }}
-                        </p>
+                      <!-- Empty State -->
+                      <div
+                        v-if="
+                          !stats.department_breakdown ||
+                          stats.department_breakdown.length === 0
+                        "
+                        class="text-center py-8 bg-gray-50 rounded-lg"
+                      >
+                        <div class="text-5xl mb-3">🏢</div>
+                        <p class="text-gray-600">No department data available</p>
                       </div>
-                      <div class="text-left sm:text-right sm:ml-4 mt-2 sm:mt-0">
-                        <p class="text-sm text-gray-600">
-                          {{ formatDate(record.created_at) }}
-                        </p>
+
+                      <!-- Department Table -->
+                      <div v-else class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                          <thead class="bg-gray-50">
+                            <tr>
+                              <th
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+                              >
+                                Dept
+                              </th>
+                              <th
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+                              >
+                                Symptoms
+                              </th>
+                              <th
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+                              >
+                                %
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody class="bg-white divide-y divide-gray-200">
+                            <tr
+                              v-for="dept in stats.department_breakdown.slice(0, 5)"
+                              :key="dept.department"
+                              class="hover:bg-gray-50"
+                            >
+                              <td
+                                class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"
+                              >
+                                {{ dept.department.split(' ').map((w: any) => w[0]).join('') }} <!-- Initials -->
+                              </td>
+                              <td
+                                class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                              >
+                                {{ dept.students_with_symptoms }}
+                              </td>
+                              <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <span
+                                  class="px-2 py-1 rounded"
+                                  :class="
+                                    dept.percentage >= 30
+                                      ? 'bg-red-100 text-red-800'
+                                      : dept.percentage >= 15
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : 'bg-green-100 text-green-800'
+                                  "
+                                >
+                                  {{ dept.percentage }}%
+                                </span>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
                       </div>
                     </div>
-                  </div>
-                </div>
-              </div>
 
-              <!-- Students Tab -->
-              <div v-if="activeTab === 'students'">
-                <StudentDirectory />
+                    <!-- Recent Activity -->
+                    <div>
+                      <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                        Recent Activity
+                      </h3>
+
+                      <div v-if="recentActivity.length === 0" class="text-center py-8 bg-gray-50 rounded-lg">
+                        <p class="text-gray-600">No recent activity</p>
+                      </div>
+
+                      <div v-else class="space-y-3">
+                        <div
+                          v-for="(item, idx) in recentActivity"
+                          :key="idx"
+                          class="flex items-start p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition border-l-4"
+                          :class="getActivityColor(item.type)"
+                        >
+                          <div class="flex-1">
+                            <div class="flex justify-between">
+                                <span class="font-bold text-sm text-gray-800">{{ item.title }}</span>
+                                <span class="text-xs text-gray-500">{{ formatDate(item.date) }}</span>
+                            </div>
+                            <p class="text-sm text-gray-600">{{ item.desc }}</p>
+                            <p class="text-xs text-gray-500 mt-1">{{ item.sub }}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                </div>
               </div>
 
               <!-- Reports Tab -->
@@ -396,7 +288,6 @@ import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import api from "@/services/api";
-import StudentDirectory from "./StudentDirectory.vue";
 import ReportsExport from "./ReportsExport.vue";
 import StaffNavigation from "@/components/StaffNavigation.vue";
 import clinicBg from "@/assets/images/clinic_background.jfif";
@@ -406,16 +297,8 @@ const authStore = useAuthStore();
 
 const activeTab = ref("overview");
 const loading = ref(false);
-const stats = ref<any>({
-  total_students: 0,
-  students_with_symptoms_today: 0,
-  students_with_symptoms_7days: 0,
-  students_with_symptoms_30days: 0,
-  pending_referrals: 0,
-  top_insight: "",
-  department_breakdown: [],
-  recent_symptoms: [],
-});
+const stats = ref<any>({});
+const recentActivity = ref<any[]>([]);
 
 onMounted(async () => {
   await loadDashboard();
@@ -424,13 +307,57 @@ onMounted(async () => {
 async function loadDashboard() {
   loading.value = true;
   try {
-    console.log("Loading Staff Dashboard...");
-    const response = await api.get("/staff/dashboard/");
-    console.log("Dashboard API Response:", response.data);
-    stats.value = response.data;
+    const [dashRes, apptRes, msgRes] = await Promise.all([
+      api.get("/staff/dashboard/"),
+      api.get("/appointments/"),
+      api.get("/messages/")
+    ])
+    stats.value = dashRes.data;
+
+    // Merge activity
+    const activity = [];
+
+    // Symptoms
+    if (dashRes.data.recent_symptoms) {
+        activity.push(...dashRes.data.recent_symptoms.map((s: any) => ({
+            type: 'symptom',
+            title: 'Symptom Report',
+            desc: s.predicted_disease,
+            sub: `${s.student_name} (${s.student_school_id})`,
+            date: s.created_at
+        })));
+    }
+
+    // Appointments (pending only or recent)
+    // The endpoint returns all. Filter for recent or pending.
+    if (apptRes.data) {
+        const recentAppts = apptRes.data.filter((a: any) => a.status === 'pending').slice(0, 5);
+        activity.push(...recentAppts.map((a: any) => ({
+            type: 'appointment',
+            title: 'Appointment Request',
+            desc: a.purpose,
+            sub: `${a.student_name} - ${a.scheduled_date}`,
+            date: a.created_at
+        })));
+    }
+
+    // Messages (Unread)
+    if (msgRes.data) {
+        const unreadMsgs = msgRes.data.filter((m: any) => !m.is_read && m.recipient === authStore.user?.id).slice(0, 5);
+        activity.push(...unreadMsgs.map((m: any) => ({
+            type: 'message',
+            title: 'New Message',
+            desc: m.content,
+            sub: `From ${m.sender_name}`,
+            date: m.timestamp
+        })));
+    }
+
+    // Sort
+    recentActivity.value = activity.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10);
+
   } catch (error: any) {
     console.error("Failed to load dashboard:", error);
-    console.error("Error details:", error.response?.data);
   } finally {
     loading.value = false;
   }
@@ -439,11 +366,18 @@ async function loadDashboard() {
 function formatDate(dateStr: string): string {
   if (!dateStr) return "N/A";
   const date = new Date(dateStr);
-  return (
-    date.toLocaleDateString() +
-    " " +
-    date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-  );
+  const now = new Date();
+  if (date.toDateString() === now.toDateString()) {
+      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+  return date.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+function getActivityColor(type: string) {
+    if (type === 'symptom') return 'border-red-500';
+    if (type === 'appointment') return 'border-yellow-500';
+    if (type === 'message') return 'border-blue-500';
+    return 'border-gray-500';
 }
 
 async function handleLogout() {

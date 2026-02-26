@@ -3,7 +3,23 @@
     <!-- Navigation Header -->
     <nav class="bg-white shadow-sm border-b-2 border-cpsu-green">
       <div class="container mx-auto px-4 sm:px-6 py-4">
-        <div class="flex justify-between items-center">
+        <!-- Staff Navigation -->
+        <div v-if="authStore.user?.role === 'staff'">
+          <div class="flex justify-between items-center mb-4">
+            <div class="flex items-center space-x-2 sm:space-x-4">
+              <img src="@/assets/images/cpsu-logo.png" alt="CPSU Logo" class="h-10 w-10 sm:h-14 sm:w-14 object-contain">
+              <div>
+                <h1 class="text-lg sm:text-2xl font-heading font-bold text-cpsu-green">CPSU Health Clinic</h1>
+                <p class="text-xs sm:text-sm text-gray-600">Staff Profile</p>
+              </div>
+            </div>
+            <button @click="$router.push('/staff')" class="btn-outline !py-2 !px-4">Back to Dashboard</button>
+          </div>
+          <StaffNavigation />
+        </div>
+
+        <!-- Student Navigation -->
+        <div v-else class="flex justify-between items-center">
           <router-link to="/dashboard" class="flex items-center space-x-2 sm:space-x-4 text-cpsu-green">
             <img src="@/assets/images/cpsu-logo.png" alt="CPSU Logo" class="h-10 w-10 sm:h-12 sm:w-12 object-contain">
             <div>
@@ -17,7 +33,7 @@
             <router-link to="/medications" class="text-gray-700 hover:text-cpsu-green">Medications</router-link>
             <router-link to="/followups" class="text-gray-700 hover:text-cpsu-green">Follow-Ups</router-link>
             <router-link to="/health-dashboard" class="text-gray-700 hover:text-cpsu-green">Analytics</router-link>
-            <router-link to="/chat" class="text-gray-700 hover:text-cpsu-green">Chat</router-link>
+            <router-link to="/chat" class="text-gray-700 hover:text-cpsu-green">AI Assistant</router-link>
             <router-link to="/history" class="text-gray-700 hover:text-cpsu-green">History</router-link>
             <router-link to="/profile" class="text-cpsu-green font-semibold">Profile</router-link>
           </div>
@@ -25,14 +41,15 @@
             ☰
           </button>
         </div>
-        <!-- Mobile Menu -->
-        <div v-if="mobileMenuOpen" class="lg:hidden mt-4 pb-4 space-y-2">
+
+        <!-- Mobile Menu (Student only) -->
+        <div v-if="mobileMenuOpen && authStore.user?.role !== 'staff'" class="lg:hidden mt-4 pb-4 space-y-2">
           <router-link to="/dashboard" class="block py-2 text-gray-700 hover:text-cpsu-green">Dashboard</router-link>
           <router-link to="/symptom-checker" class="block py-2 text-gray-700 hover:text-cpsu-green">Check Symptoms</router-link>
           <router-link to="/medications" class="block py-2 text-gray-700 hover:text-cpsu-green">Medications</router-link>
           <router-link to="/followups" class="block py-2 text-gray-700 hover:text-cpsu-green">Follow-Ups</router-link>
           <router-link to="/health-dashboard" class="block py-2 text-gray-700 hover:text-cpsu-green">Analytics</router-link>
-          <router-link to="/chat" class="block py-2 text-gray-700 hover:text-cpsu-green">Chat</router-link>
+          <router-link to="/chat" class="block py-2 text-gray-700 hover:text-cpsu-green">AI Assistant</router-link>
           <router-link to="/history" class="block py-2 text-gray-700 hover:text-cpsu-green">History</router-link>
           <router-link to="/profile" class="block py-2 text-cpsu-green font-semibold">Profile</router-link>
         </div>
@@ -42,9 +59,9 @@
     <!-- Main Content -->
     <div class="container mx-auto px-6 py-8 max-w-7xl">
       <div class="mb-6">
-        <router-link to="/dashboard" class="text-cpsu-green hover:underline mb-4 inline-block">
-          ← Back to Dashboard
-        </router-link>
+        <button @click="$router.go(-1)" class="text-cpsu-green hover:underline mb-4 inline-block">
+          ← Back
+        </button>
         <h2 class="text-3xl font-heading font-bold text-gray-900">My Profile</h2>
         <p class="text-gray-600 mt-2">Manage your account information</p>
       </div>
@@ -154,7 +171,8 @@
             </div>
           </div>
 
-          <!-- Data Consent Status -->\n          <div class="border-t pt-4 mb-6">
+          <!-- Data Consent Status (Students only) -->
+          <div v-if="authStore.user?.role === 'student'" class="border-t pt-4 mb-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-3">Privacy & Data Consent</h3>
             <div v-if="authStore.user?.data_consent_given" class="bg-green-50 border border-green-200 rounded-lg p-4">
               <div class="flex items-start">
@@ -193,14 +211,14 @@
             <button
               type="submit"
               :disabled="authStore.loading"
-              class="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed justify-center"
             >
               <span v-if="authStore.loading">Updating...</span>
               <span v-else>Update Profile</span>
             </button>
-            <router-link to="/dashboard" class="btn-outline flex-1 text-center">
+            <button @click="$router.go(-1)" type="button" class="btn-outline flex-1 text-center justify-center">
               Cancel
-            </router-link>
+            </button>
           </div>
         </form>
       </div>
@@ -212,6 +230,7 @@
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/services/api'
+import StaffNavigation from '@/components/StaffNavigation.vue'
 
 const authStore = useAuthStore()
 const successMessage = ref('')

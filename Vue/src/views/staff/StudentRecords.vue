@@ -30,15 +30,16 @@
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Search Student</label>
             <input
-              v-model="searchQuery"
+              v-model.lazy="searchQuery"
+              @change="fetchStudents"
               type="text"
-              placeholder="School ID or Name..."
+              placeholder="School ID or Name (Press Enter)"
               class="input-field w-full"
             />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Department</label>
-            <select v-model="filterDepartment" class="input-field w-full">
+            <select v-model="filterDepartment" @change="fetchStudents" class="input-field w-full">
               <option value="">All Departments</option>
               <option value="College of Agriculture and Forestry">College of Agriculture and Forestry</option>
               <option value="College of Teacher Education">College of Teacher Education</option>
@@ -51,7 +52,7 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Health Status</label>
-            <select v-model="filterStatus" class="input-field w-full">
+            <select v-model="filterStatus" @change="fetchStudents" class="input-field w-full">
               <option value="">All Students</option>
               <option value="recent">Recent Symptoms (7 days)</option>
               <option value="medications">On Medications</option>
@@ -74,12 +75,12 @@
 
       <!-- Students List -->
       <div v-else class="space-y-4">
-        <div v-if="filteredStudents.length === 0" class="text-center py-12 bg-white rounded-lg border-2 border-gray-200">
+        <div v-if="students.length === 0" class="text-center py-12 bg-white rounded-lg border-2 border-gray-200">
           <p class="text-gray-500 text-lg">No students found matching your criteria</p>
         </div>
 
         <div
-          v-for="student in filteredStudents"
+          v-for="student in students"
           :key="student.id"
           class="bg-white rounded-lg shadow-sm border-2 border-gray-200 hover:border-cpsu-green transition-colors cursor-pointer"
           @click="viewStudentDetails(student)"
@@ -125,6 +126,17 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="flex justify-between items-center mt-6">
+          <button @click="prevPage" :disabled="!hasPrev" class="btn-outline px-4 py-2 disabled:opacity-50">
+            Previous
+          </button>
+          <span class="text-gray-600">Page {{ page }}</span>
+          <button @click="nextPage" :disabled="!hasNext" class="btn-outline px-4 py-2 disabled:opacity-50">
+            Next
+          </button>
         </div>
       </div>
 
@@ -293,7 +305,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import StaffNavigation from '@/components/StaffNavigation.vue'
@@ -305,6 +317,9 @@ const students = ref<any[]>([])
 const selectedStudent = ref<any>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
+const page = ref(1)
+const hasNext = ref(false)
+const hasPrev = ref(false)
 
 // Edit Diagnosis State
 const editingReport = ref<any>(null)
@@ -318,54 +333,50 @@ const searchQuery = ref('')
 const filterDepartment = ref('')
 const filterStatus = ref('')
 
-// Filtered students
-const filteredStudents = computed(() => {
-  let filtered = students.value
-
-  // Search filter
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(s =>
-      s.name?.toLowerCase().includes(query) ||
-      s.school_id?.toLowerCase().includes(query)
-    )
-  }
-
-  // Department filter
-  if (filterDepartment.value) {
-    filtered = filtered.filter(s => s.department === filterDepartment.value)
-  }
-
-  // Status filter
-  if (filterStatus.value === 'recent') {
-    filtered = filtered.filter(s => s.recent_symptoms)
-  } else if (filterStatus.value === 'medications') {
-    filtered = filtered.filter(s => s.on_medication)
-  } else if (filterStatus.value === 'followup') {
-    filtered = filtered.filter(s => s.pending_followup)
-  }
-
-  return filtered
-})
-
-// Methods
 const fetchStudents = async () => {
   loading.value = true
   error.value = null
 
   try {
-    const response = await api.get('/staff/students/')
-    console.log('Student API Response:', response.data)
-    students.value = response.data.students || []
-    console.log('Students loaded:', students.value.length)
+    const params: any = { page: page.value }
+    if (searchQuery.value) params.search = searchQuery.value
+    if (filterDepartment.value) params.department = filterDepartment.value
+    if (filterStatus.value) params.status = filterStatus.value
+
+    const response = await api.get('/staff/students/', { params })
+    const data = response.data
+    // Handle paginated response
+    students.value = data.results || data.students || []
+    hasNext.value = !!data.next
+    hasPrev.value = !!data.previous
+
   } catch (err: any) {
     error.value = err.response?.data?.error || err.message || 'Failed to load students'
     console.error('Error fetching students:', err)
-    console.error('Error details:', err.response?.data)
   } finally {
     loading.value = false
   }
 }
+
+const nextPage = () => {
+  if (hasNext.value) {
+    page.value++
+    fetchStudents()
+  }
+}
+
+const prevPage = () => {
+  if (hasPrev.value) {
+    page.value--
+    fetchStudents()
+  }
+}
+
+// Watch filters
+watch([filterDepartment, filterStatus], () => {
+  page.value = 1
+  fetchStudents()
+})
 
 const viewStudentDetails = (student: any) => {
   selectedStudent.value = student

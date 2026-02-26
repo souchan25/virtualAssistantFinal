@@ -11,6 +11,20 @@
         📊 Dashboard
       </router-link>
       <router-link
+        to="/messages"
+        active-class="text-cpsu-green font-semibold"
+        class="text-gray-700 hover:text-cpsu-green font-medium"
+      >
+        💬 Messages
+      </router-link>
+      <router-link
+        to="/appointments"
+        active-class="text-cpsu-green font-semibold"
+        class="text-gray-700 hover:text-cpsu-green font-medium"
+      >
+        📅 Appointments
+      </router-link>
+      <router-link
         to="/staff/emergencies"
         active-class="text-cpsu-green font-semibold"
         class="text-gray-700 hover:text-cpsu-green font-medium"
@@ -64,6 +78,20 @@
           exact
         >
           📊 Dashboard
+        </router-link>
+        <router-link
+          to="/messages"
+          active-class="text-cpsu-green font-semibold bg-gray-50 rounded-md"
+          class="text-gray-700 hover:text-cpsu-green font-medium text-sm whitespace-nowrap px-3 py-2"
+        >
+          💬 Messages
+        </router-link>
+        <router-link
+          to="/appointments"
+          active-class="text-cpsu-green font-semibold bg-gray-50 rounded-md"
+          class="text-gray-700 hover:text-cpsu-green font-medium text-sm whitespace-nowrap px-3 py-2"
+        >
+          📅 Appointments
         </router-link>
         <router-link
           to="/staff/emergencies"

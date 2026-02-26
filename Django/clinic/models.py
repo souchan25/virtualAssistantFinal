@@ -6,6 +6,7 @@ Includes custom user model, health records, and audit logs
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from django.utils import timezone
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import MinValueValidator, MaxValueValidator
 import uuid
 
@@ -923,3 +924,87 @@ class MedicationLog(models.Model):
             timezone.datetime.combine(self.scheduled_date, self.scheduled_time)
         )
         return now > scheduled_datetime
+
+class Message(models.Model):
+    """
+    Direct messaging between students and staff
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    sender = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='sent_messages'
+    )
+    recipient = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='received_messages'
+    )
+    content = models.TextField()
+    is_read = models.BooleanField(default=False)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'messages'
+        ordering = ['timestamp']
+        indexes = [
+            models.Index(fields=['sender', 'recipient', 'timestamp']),
+            models.Index(fields=['recipient', 'is_read']),
+        ]
+
+    def __str__(self):
+        return f"Message from {self.sender.school_id} to {self.recipient.school_id}"
+
+
+class Appointment(models.Model):
+    """
+    Clinic appointments management
+    """
+    STATUS_CHOICES = [
+        ('pending', 'Pending Confirmation'),
+        ('confirmed', 'Confirmed'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+        ('no_show', 'No Show'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    student = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='appointments',
+        limit_choices_to={'role': 'student'}
+    )
+    staff = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='staff_appointments',
+        limit_choices_to={'role': 'staff'}
+    )
+
+    scheduled_date = models.DateField()
+    scheduled_time = models.TimeField()
+
+    purpose = models.CharField(max_length=200)
+    notes = models.TextField(blank=True)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'appointments'
+        ordering = ['scheduled_date', 'scheduled_time']
+        indexes = [
+            models.Index(fields=['student', 'status']),
+            models.Index(fields=['scheduled_date', 'scheduled_time']),
+        ]
+
+    def __str__(self):
+        return f"Appointment: {self.student.school_id} on {self.scheduled_date}"

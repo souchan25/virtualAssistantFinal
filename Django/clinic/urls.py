@@ -10,6 +10,8 @@ from . import views, rasa_webhooks, admin_views
 router = DefaultRouter()
 router.register(r'symptoms', views.SymptomRecordViewSet, basename='symptom')
 router.register(r'audit', views.AuditLogViewSet, basename='audit')
+router.register(r'messages', views.MessageViewSet, basename='message')
+router.register(r'appointments', views.AppointmentViewSet, basename='appointment')
 
 app_name = 'clinic'
 

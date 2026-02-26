@@ -43,8 +43,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['school_id', 'name', 'department', 'cpsu_address', 'role', 'data_consent_given', 'consent_date', 'date_joined']
-        read_only_fields = ['school_id', 'role', 'consent_date', 'date_joined']
+        fields = ['id', 'school_id', 'name', 'department', 'cpsu_address', 'role', 'data_consent_given', 'consent_date', 'date_joined']
+        read_only_fields = ['id', 'school_id', 'role', 'consent_date', 'date_joined']
 
 
 class SymptomRecordSerializer(serializers.ModelSerializer):
@@ -370,3 +370,33 @@ class FollowUpResponseSerializer(serializers.Serializer):
         required=False,
         default=list
     )
+
+from .models import Message, Appointment
+
+class MessageSerializer(serializers.ModelSerializer):
+    sender_name = serializers.CharField(source='sender.name', read_only=True)
+    recipient_name = serializers.CharField(source='recipient.name', read_only=True)
+    sender_role = serializers.CharField(source='sender.role', read_only=True)
+    recipient_role = serializers.CharField(source='recipient.role', read_only=True)
+
+    class Meta:
+        model = Message
+        fields = ['id', 'sender', 'sender_name', 'sender_role', 'recipient', 'recipient_name', 'recipient_role', 'content', 'is_read', 'timestamp']
+        read_only_fields = ['id', 'sender', 'timestamp', 'is_read']
+
+class AppointmentSerializer(serializers.ModelSerializer):
+    student_name = serializers.CharField(source='student.name', read_only=True)
+    student_school_id = serializers.CharField(source='student.school_id', read_only=True)
+    staff_name = serializers.CharField(source='staff.name', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+
+    class Meta:
+        model = Appointment
+        fields = [
+            'id', 'student', 'student_name', 'student_school_id',
+            'staff', 'staff_name',
+            'scheduled_date', 'scheduled_time',
+            'purpose', 'notes', 'status', 'status_display',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']

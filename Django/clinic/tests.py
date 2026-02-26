@@ -30,7 +30,7 @@ class CustomUserModelTests(TestCase):
             school_id='2024-001',
             password='testpass123',
             name='Test Student',
-            department='Computer Science'
+            department='College of Computer Studies'
         )
         
         self.assertEqual(user.school_id, '2024-001')
@@ -45,7 +45,7 @@ class CustomUserModelTests(TestCase):
             school_id='admin001',
             password='admin123',
             name='Admin User',
-            department='Administration'
+            department='College of Computer Studies'
         )
         
         self.assertTrue(admin.is_staff)
@@ -142,7 +142,7 @@ class AuthenticationAPITests(APITestCase):
             'password': 'securepass123',
             'password_confirm': 'securepass123',
             'name': 'New Student',
-            'department': 'Business',
+            'department': 'College of Hospitality Management',
             'cpsu_address': 'Dorm 1',
             'data_consent_given': True
         }
@@ -216,7 +216,7 @@ class ProfileAPITests(APITestCase):
         """Test updating editable fields"""
         data = {
             'name': 'Updated Name',
-            'department': 'Computer Science',
+            'department': 'College of Computer Studies',
             'cpsu_address': 'Dorm 3'
         }
         
