@@ -164,6 +164,12 @@
                 📄 View Record
               </button>
               <button
+                @click="messageStudent(followup)"
+                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex-1 sm:flex-none justify-center"
+              >
+                ✉️ Message Student
+              </button>
+              <button
                 v-if="followup.symptom_record"
                 @click="openEditDiagnosis(followup)"
                 class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex-1 sm:flex-none justify-center"
@@ -374,12 +380,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import StaffNavigation from '@/components/StaffNavigation.vue'
 
 // State
 const followups = ref<any[]>([])
 const loading = ref(false)
+const router = useRouter()
 const error = ref<string | null>(null)
 const reviewingFollowup = ref<any>(null)
 const staffNotes = ref('')
@@ -424,6 +432,16 @@ const viewFollowup = (followup: any) => {
 const closeReview = () => {
   reviewingFollowup.value = null
   staffNotes.value = ''
+}
+
+const messageStudent = (followup: any) => {
+  router.push({
+    name: 'messages',
+    query: {
+      tab: 'Compose',
+      recipient: followup.student_school_id
+    }
+  })
 }
 
 const submitReview = async () => {
