@@ -74,12 +74,12 @@
 
       <!-- Students List -->
       <div v-else class="space-y-4">
-        <div v-if="filteredStudents.length === 0" class="text-center py-12 bg-white rounded-lg border-2 border-gray-200">
+        <div v-if="students.length === 0" class="text-center py-12 bg-white rounded-lg border-2 border-gray-200">
           <p class="text-gray-500 text-lg">No students found matching your criteria</p>
         </div>
 
         <div
-          v-for="student in filteredStudents"
+          v-for="student in students"
           :key="student.id"
           class="bg-white rounded-lg shadow-sm border-2 border-gray-200 hover:border-cpsu-green transition-colors cursor-pointer"
           @click="viewStudentDetails(student)"
@@ -293,7 +293,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/services/api'
 import StaffNavigation from '@/components/StaffNavigation.vue'
@@ -318,35 +318,14 @@ const searchQuery = ref('')
 const filterDepartment = ref('')
 const filterStatus = ref('')
 
-// Filtered students
-const filteredStudents = computed(() => {
-  let filtered = students.value
-
-  // Search filter
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(s =>
-      s.name?.toLowerCase().includes(query) ||
-      s.school_id?.toLowerCase().includes(query)
-    )
+// Debounce utility
+function debounce(fn: Function, delay: number) {
+  let timeoutId: ReturnType<typeof setTimeout>
+  return (...args: any[]) => {
+    clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => fn(...args), delay)
   }
-
-  // Department filter
-  if (filterDepartment.value) {
-    filtered = filtered.filter(s => s.department === filterDepartment.value)
-  }
-
-  // Status filter
-  if (filterStatus.value === 'recent') {
-    filtered = filtered.filter(s => s.recent_symptoms)
-  } else if (filterStatus.value === 'medications') {
-    filtered = filtered.filter(s => s.on_medication)
-  } else if (filterStatus.value === 'followup') {
-    filtered = filtered.filter(s => s.pending_followup)
-  }
-
-  return filtered
-})
+}
 
 // Methods
 const fetchStudents = async () => {
@@ -354,7 +333,12 @@ const fetchStudents = async () => {
   error.value = null
 
   try {
-    const response = await api.get('/staff/students/')
+    const params: any = {}
+    if (searchQuery.value) params.search = searchQuery.value
+    if (filterDepartment.value) params.department = filterDepartment.value
+    if (filterStatus.value) params.status = filterStatus.value
+
+    const response = await api.get('/staff/students/', { params })
     console.log('Student API Response:', response.data)
     students.value = response.data.students || []
     console.log('Students loaded:', students.value.length)
@@ -366,6 +350,19 @@ const fetchStudents = async () => {
     loading.value = false
   }
 }
+
+const debouncedFetch = debounce(() => {
+  fetchStudents()
+}, 300)
+
+// Watchers for server-side filtering
+watch(searchQuery, () => {
+  debouncedFetch()
+})
+
+watch([filterDepartment, filterStatus], () => {
+  fetchStudents()
+})
 
 const viewStudentDetails = (student: any) => {
   selectedStudent.value = student

@@ -865,6 +865,7 @@ def student_directory(request):
     department = request.query_params.get('department')
     search = request.query_params.get('search')
     has_symptoms = request.query_params.get('has_symptoms')
+    status_filter = request.query_params.get('status')
     
     if department:
         queryset = queryset.filter(department__icontains=department)
@@ -878,14 +879,29 @@ def student_directory(request):
         queryset = queryset.filter(symptom_records__isnull=False).distinct()
     elif has_symptoms == 'false':
         queryset = queryset.filter(symptom_records__isnull=True)
+
+    if status_filter == 'recent':
+        seven_days_ago = timezone.now() - timedelta(days=7)
+        queryset = queryset.filter(
+            symptom_records__created_at__gte=seven_days_ago
+        ).distinct()
+    elif status_filter == 'medications':
+        queryset = queryset.filter(medications__is_active=True).distinct()
+    elif status_filter == 'followup':
+        queryset = queryset.filter(follow_ups__status='pending').distinct()
     
     # Build enriched student data
     students_data = []
     for student in queryset:
         # Get symptom records
-        recent_symptoms = student.symptom_records.order_by('-created_at')[:5]
-        last_visit = recent_symptoms.first().created_at if recent_symptoms.exists() else None
+        recent_records = student.symptom_records.order_by('-created_at')[:5]
+        last_visit = recent_records.first().created_at if recent_records.exists() else None
         
+        # Check if recent (last 7 days)
+        is_recent = False
+        if last_visit:
+            is_recent = (timezone.now() - last_visit) <= timedelta(days=7)
+
         # Get medications
         active_meds = student.medications.filter(is_active=True)
         
@@ -909,8 +925,8 @@ def student_directory(request):
             'medication_count': active_meds.count(),
             'adherence_rate': adherence_rate,
             'pending_followup': pending_followups,
-            'recent_symptoms': recent_symptoms.exists(),
-            'recent_symptom_reports': SymptomRecordSerializer(recent_symptoms, many=True).data,
+            'recent_symptoms': is_recent,
+            'recent_symptom_reports': SymptomRecordSerializer(recent_records, many=True).data,
             'medications': MedicationSerializer(active_meds, many=True).data
         }
         
