@@ -62,13 +62,9 @@ def register_user(request):
     serializer = UserRegistrationSerializer(data=request.data)
     
     if serializer.is_valid():
-        # Determine role based on registration context
-        # In production, staff registration would be admin-only
-        role = request.data.get('role', 'student')
-        if role not in ['student', 'staff']:
-            role = 'student'
-        
-        user = serializer.save(role=role)
+        # Security: Force role to 'student' for public registration
+        # Staff accounts must be created by administrators
+        user = serializer.save(role='student')
         
         # Create auth token
         token, created = Token.objects.get_or_create(user=user)

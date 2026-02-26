@@ -157,6 +157,24 @@ class AuthenticationAPITests(APITestCase):
         user = User.objects.get(school_id='2024-200')
         self.assertEqual(user.name, 'New Student')
         self.assertTrue(user.data_consent_given)
+
+    def test_cannot_register_as_staff(self):
+        """Test that registering with role='staff' results in 'student' role"""
+        data = {
+            'school_id': 'staff-fake-001',
+            'password': 'securepass123',
+            'password_confirm': 'securepass123',
+            'name': 'Fake Staff',
+            'department': 'College of Computer Studies',
+            'role': 'staff',
+            'data_consent_given': True
+        }
+
+        response = self.client.post('/api/auth/register/', data)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        user = User.objects.get(school_id='staff-fake-001')
+        self.assertEqual(user.role, 'student')
     
     def test_user_login(self):
         """Test user login"""
