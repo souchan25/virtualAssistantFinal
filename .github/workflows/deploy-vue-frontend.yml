@@ -6,7 +6,7 @@ on:
       - main
       - master
     paths:
-      - 'Vue/**'
+      - "Vue/**"
   workflow_dispatch:
 
 jobs:
@@ -24,3 +24,5 @@ jobs:
           action: "upload"
           app_location: "/Vue"
           output_location: "dist"
+        env:
+          VITE_API_BASE_URL: https://cpsu-health-backend.azurewebsites.net/api
