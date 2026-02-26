@@ -35,6 +35,16 @@
               >Dashboard</router-link
             >
             <router-link
+              to="/messages"
+              class="text-gray-700 hover:text-cpsu-green px-2 lg:px-3 py-2 text-sm lg:text-base whitespace-nowrap"
+              >Messages</router-link
+            >
+            <router-link
+              to="/appointments"
+              class="text-gray-700 hover:text-cpsu-green px-2 lg:px-3 py-2 text-sm lg:text-base whitespace-nowrap"
+              >Appointments</router-link
+            >
+            <router-link
               to="/symptom-checker"
               class="text-gray-700 hover:text-cpsu-green px-2 lg:px-3 py-2 text-sm lg:text-base whitespace-nowrap"
               >Check Symptoms</router-link
@@ -57,7 +67,7 @@
             <router-link
               to="/chat"
               class="text-gray-700 hover:text-cpsu-green px-2 lg:px-3 py-2 text-sm lg:text-base whitespace-nowrap"
-              >Chat</router-link
+              >AI Assistant</router-link
             >
             <router-link
               to="/history"
@@ -117,6 +127,16 @@
             >Dashboard</router-link
           >
           <router-link
+            to="/messages"
+            class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded text-sm"
+            >Messages</router-link
+          >
+          <router-link
+            to="/appointments"
+            class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded text-sm"
+            >Appointments</router-link
+          >
+          <router-link
             to="/symptom-checker"
             class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded text-sm"
             >Check Symptoms</router-link
@@ -139,7 +159,7 @@
           <router-link
             to="/chat"
             class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded text-sm"
-            >Chat</router-link
+            >AI Assistant</router-link
           >
           <router-link
             to="/history"
@@ -237,6 +257,36 @@
         </router-link>
 
         <router-link
+          to="/messages"
+          class="card-bordered hover:shadow-xl transition-shadow p-4 sm:p-6"
+        >
+          <div class="text-3xl sm:text-4xl mb-3 sm:mb-4">✉️</div>
+          <h3
+            class="text-base sm:text-xl font-bold text-cpsu-green mb-1 sm:mb-2"
+          >
+            My Inbox
+          </h3>
+          <p class="text-sm sm:text-base text-gray-600">
+            Messages from clinic staff
+          </p>
+        </router-link>
+
+        <router-link
+          to="/appointments"
+          class="card-bordered hover:shadow-xl transition-shadow p-4 sm:p-6"
+        >
+          <div class="text-3xl sm:text-4xl mb-3 sm:mb-4">📅</div>
+          <h3
+            class="text-base sm:text-xl font-bold text-cpsu-green mb-1 sm:mb-2"
+          >
+            Appointments
+          </h3>
+          <p class="text-sm sm:text-base text-gray-600">
+            Schedule clinic visits
+          </p>
+        </router-link>
+
+        <router-link
           to="/chat"
           class="card-bordered hover:shadow-xl transition-shadow p-4 sm:p-6"
         >
@@ -244,7 +294,7 @@
           <h3
             class="text-base sm:text-xl font-bold text-cpsu-green mb-1 sm:mb-2"
           >
-            Chat Assistant
+            AI Health Assistant
           </h3>
           <p class="text-sm sm:text-base text-gray-600">
             Talk to our health chatbot

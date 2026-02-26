@@ -10,12 +10,13 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, get_user_model
 from django.utils import timezone
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count, Q
 from datetime import timedelta
 import uuid
 import logging
 
-from .models import SymptomRecord, HealthInsight, ChatSession, ConsentLog, AuditLog, DepartmentStats, EmergencyAlert, Medication, MedicationLog, FollowUp
+from .models import SymptomRecord, HealthInsight, ChatSession, ConsentLog, AuditLog, DepartmentStats, EmergencyAlert, Medication, MedicationLog, FollowUp, Message, Appointment
 from .serializers import (
     UserRegistrationSerializer, UserProfileSerializer,
     SymptomRecordSerializer, SymptomSubmissionSerializer,
@@ -25,7 +26,8 @@ from .serializers import (
     DepartmentStatsSerializer, DashboardStatsSerializer,
     EmergencyAlertSerializer, EmergencyTriggerSerializer,
     MedicationSerializer, MedicationCreateSerializer, MedicationLogSerializer,
-    FollowUpSerializer, FollowUpResponseSerializer
+    FollowUpSerializer, FollowUpResponseSerializer,
+    MessageSerializer, AppointmentSerializer
 )
 from .permissions import IsStudent, IsClinicStaff, IsOwnerOrStaff, CanModifyProfile, HasDataConsent
 from .ml_service import get_ml_predictor
@@ -63,10 +65,8 @@ def register_user(request):
     
     if serializer.is_valid():
         # Determine role based on registration context
-        # In production, staff registration would be admin-only
-        role = request.data.get('role', 'student')
-        if role not in ['student', 'staff']:
-            role = 'student'
+        # Restrict public registration to students only. Staff must be created by admin.
+        role = 'student'
         
         user = serializer.save(role=role)
         
@@ -131,7 +131,10 @@ def logout_user(request):
     User logout (delete auth token)
     POST /api/auth/logout/
     """
-    request.user.auth_token.delete()
+    try:
+        request.user.auth_token.delete()
+    except (AttributeError, ObjectDoesNotExist):
+        pass
     return Response({'message': 'Logout successful'})
 
 
@@ -854,12 +857,13 @@ def student_directory(request):
     GET /api/staff/students/
     """
     from django.db.models import Prefetch, Avg
+    from rest_framework.pagination import PageNumberPagination
     
     queryset = User.objects.filter(role='student').prefetch_related(
         'symptom_records',
         'medications',
         'follow_ups'
-    )
+    ).order_by('name')
     
     # Filters
     department = request.query_params.get('department')
@@ -879,9 +883,25 @@ def student_directory(request):
     elif has_symptoms == 'false':
         queryset = queryset.filter(symptom_records__isnull=True)
     
+    # Status filter
+    status_filter = request.query_params.get('status')
+    if status_filter == 'recent':
+        seven_days_ago = timezone.now() - timedelta(days=7)
+        queryset = queryset.filter(symptom_records__created_at__gte=seven_days_ago).distinct()
+    elif status_filter == 'medications':
+        queryset = queryset.filter(medications__is_active=True).distinct()
+    elif status_filter == 'followup':
+        queryset = queryset.filter(follow_ups__status__in=['pending', 'overdue']).distinct()
+
+    # Pagination
+    paginator = PageNumberPagination()
+    paginator.page_size = 20
+    paginator.page_size_query_param = 'page_size'
+    result_page = paginator.paginate_queryset(queryset, request)
+
     # Build enriched student data
     students_data = []
-    for student in queryset:
+    for student in result_page:
         # Get symptom records
         recent_symptoms = student.symptom_records.order_by('-created_at')[:5]
         last_visit = recent_symptoms.first().created_at if recent_symptoms.exists() else None
@@ -916,7 +936,7 @@ def student_directory(request):
         
         students_data.append(student_data)
     
-    return Response({'students': students_data})
+    return paginator.get_paginated_response(students_data)
 
 
 from rest_framework.renderers import JSONRenderer, BaseRenderer
@@ -1891,3 +1911,68 @@ def staff_analytics(request):
     }
     
     return Response(data)
+
+# ============================================================================
+# Messaging System
+# ============================================================================
+
+class MessageViewSet(viewsets.ModelViewSet):
+    """
+    CRUD for direct messages
+    """
+    serializer_class = MessageSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Message.objects.filter(
+            Q(sender=user) | Q(recipient=user)
+        ).select_related('sender', 'recipient')
+
+    def perform_create(self, serializer):
+        serializer.save(sender=self.request.user)
+
+    @action(detail=True, methods=['patch'])
+    def mark_read(self, request, pk=None):
+        message = self.get_object()
+        if message.recipient != request.user:
+             return Response({'error': 'Not authorized'}, status=status.HTTP_403_FORBIDDEN)
+
+        message.is_read = True
+        message.save()
+        return Response({'status': 'marked as read'})
+
+
+# ============================================================================
+# Appointment System
+# ============================================================================
+
+class AppointmentViewSet(viewsets.ModelViewSet):
+    """
+    CRUD for appointments
+    """
+    serializer_class = AppointmentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'staff':
+            return Appointment.objects.all().select_related('student', 'staff')
+        return Appointment.objects.filter(student=user).select_related('student', 'staff')
+
+    def perform_create(self, serializer):
+        # If student creates, set student=user. If staff creates, they must specify student.
+        if self.request.user.role == 'student':
+            serializer.save(student=self.request.user)
+        else:
+            serializer.save()
+
+    @action(detail=True, methods=['patch'])
+    def confirm(self, request, pk=None):
+        if request.user.role != 'staff':
+            return Response({'error': 'Only staff can confirm appointments'}, status=status.HTTP_403_FORBIDDEN)
+        appointment = self.get_object()
+        appointment.status = 'confirmed'
+        appointment.staff = request.user
+        appointment.save()
+        return Response(AppointmentSerializer(appointment).data)

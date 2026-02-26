@@ -70,6 +70,18 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, requiresStudent: true }
   },
   {
+    path: '/messages',
+    name: 'messages',
+    component: () => import('@/views/MessagesView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/appointments',
+    name: 'appointments',
+    component: () => import('@/views/AppointmentsView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/history',
     name: 'history',
     component: () => import('@/views/HistoryView.vue'),
