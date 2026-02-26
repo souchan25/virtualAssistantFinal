@@ -1,4 +1,4 @@
-c<template>
+<template>
   <div class="min-h-screen bg-gray-50">
     <!-- Navigation Header -->
     <nav class="bg-white shadow-sm border-b-2 border-cpsu-green sticky top-0 z-40">
@@ -81,9 +81,11 @@ c<template>
         
         <!-- Search -->
         <div class="mb-6">
+          <label for="symptom-search" class="sr-only">Search symptoms</label>
           <input
+            id="symptom-search"
             v-model="searchQuery"
-            type="text"
+            type="search"
             placeholder="Search symptoms..."
             class="input-field text-sm sm:text-base"
           />
@@ -99,13 +101,13 @@ c<template>
               class="px-2 sm:px-3 py-1 bg-cpsu-green text-white rounded-full text-xs sm:text-sm flex items-center gap-1 sm:gap-2"
             >
               <span class="truncate">{{ formatSymptomName(symptom) }}</span>
-              <button @click="symptomsStore.toggleSymptom(symptom)" class="hover:text-cpsu-yellow flex-shrink-0">✕</button>
+              <button @click="symptomsStore.toggleSymptom(symptom)" class="hover:text-cpsu-yellow flex-shrink-0" aria-label="Remove symptom">✕</button>
             </span>
           </div>
         </div>
 
         <!-- Symptoms Grid -->
-        <div v-if="symptomsStore.loading" class="text-center py-8">
+        <div v-if="symptomsStore.loading && symptomsStore.availableSymptoms.length === 0" class="text-center py-8">
           <div class="spinner w-12 h-12 mx-auto"></div>
         </div>
 
@@ -114,13 +116,21 @@ c<template>
             v-for="symptom in filteredSymptoms"
             :key="symptom"
             @click="symptomsStore.toggleSymptom(symptom)"
-            class="px-3 sm:px-4 py-2 sm:py-3 rounded-lg border-2 text-left transition-all text-xs sm:text-sm"
+            type="button"
+            :aria-pressed="symptomsStore.selectedSymptoms.includes(symptom)"
+            class="px-3 sm:px-4 py-2 sm:py-3 rounded-lg border-2 text-left transition-all text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cpsu-green"
             :class="symptomsStore.selectedSymptoms.includes(symptom)
               ? 'border-cpsu-green bg-cpsu-green text-white'
               : 'border-gray-300 hover:border-cpsu-green'"
           >
             {{ formatSymptomName(symptom) }}
           </button>
+        </div>
+
+        <!-- Empty Search State -->
+        <div v-if="filteredSymptoms.length === 0 && !symptomsStore.loading" class="text-center py-8 text-gray-500">
+          <p>No symptoms found matching "{{ searchQuery }}"</p>
+          <button @click="searchQuery = ''" class="text-cpsu-green hover:underline mt-2 font-medium">Clear search</button>
         </div>
 
         <!-- Actions -->
@@ -133,11 +143,12 @@ c<template>
             Clear All
           </button>
           <button
-            :disabled="symptomsStore.selectedSymptoms.length === 0"
+            :disabled="symptomsStore.selectedSymptoms.length === 0 || symptomsStore.loading"
             @click="getPrediction"
-            class="btn-primary text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            class="btn-primary text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            Get Prediction ({{ symptomsStore.selectedSymptoms.length }})
+            <span v-if="symptomsStore.loading" class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+            <span>{{ symptomsStore.loading ? 'Analyzing...' : `Get Prediction (${symptomsStore.selectedSymptoms.length})` }}</span>
           </button>
         </div>
       </div>
