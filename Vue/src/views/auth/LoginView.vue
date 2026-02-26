@@ -85,17 +85,24 @@
             </div>
           </div>
 
-          <!-- Remember Me -->
-          <div class="flex items-center">
-            <input
-              id="remember-me"
-              v-model="rememberMe"
-              type="checkbox"
-              class="h-4 w-4 text-cpsu-green focus:ring-cpsu-green border-gray-300 rounded"
-            />
-            <label for="remember-me" class="ml-2 block text-sm text-gray-900">
-              Remember me
-            </label>
+          <!-- Remember Me & Forgot Password -->
+          <div class="flex items-center justify-between">
+            <div class="flex items-center">
+               <input
+                id="remember-me"
+                v-model="rememberMe"
+                type="checkbox"
+                class="h-4 w-4 text-cpsu-green focus:ring-cpsu-green border-gray-300 rounded"
+              />
+              <label for="remember-me" class="ml-2 block text-sm text-gray-900">
+                Remember me
+              </label>
+            </div>
+            <div class="text-sm">
+              <button type="button" @click="showForgotModal = true" class="font-medium text-cpsu-green hover:text-cpsu-green-dark">
+                Forgot your password?
+              </button>
+            </div>
           </div>
 
           <!-- Submit Button -->
@@ -118,6 +125,53 @@
         </form>
       </div>
     </div>
+    
+    <!-- Forgot Password Modal -->
+    <Transition name="modal">
+      <div v-if="showForgotModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" @click="closeForgotModal"></div>
+        <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 overflow-hidden">
+          <div class="absolute top-4 right-4">
+            <button @click="closeForgotModal" class="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+          </div>
+          
+          <h3 class="text-2xl font-bold font-heading text-cpsu-green mb-2">Reset Password</h3>
+          <p class="text-gray-600 text-sm mb-6">Enter your email address or School ID below and we'll send you a link to reset your password.</p>
+          
+          <form @submit.prevent="handleForgotPassword">
+            <div v-if="forgotSuccess" class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4 text-sm">
+              {{ forgotSuccess }}
+            </div>
+            <div v-if="forgotError" class="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-4 text-sm">
+              {{ forgotError }}
+            </div>
+            
+            <div class="mb-5">
+              <label for="reset-identifier" class="block text-sm font-medium text-gray-700 mb-2">Email Address or School ID</label>
+              <input 
+                id="reset-identifier" 
+                v-model="forgotIdentifier" 
+                type="text" 
+                required 
+                class="input-field w-full" 
+                placeholder="e.g. email@example.com or 2021-1234"
+              />
+            </div>
+            
+            <button 
+              type="submit" 
+              :disabled="sendingReset" 
+              class="w-full btn-primary flex justify-center items-center h-11"
+            >
+              <span v-if="sendingReset" class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+              <span v-else>Send Reset Link</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </Transition>
     </div>
   </div>
 </template>
@@ -126,6 +180,7 @@
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import api from '@/services/api'
 
 const router = useRouter()
 const route = useRoute()
@@ -138,6 +193,39 @@ const credentials = ref({
 
 const rememberMe = ref(false)
 const showPassword = ref(false)
+
+// Forgot Password State
+const showForgotModal = ref(false)
+const forgotIdentifier = ref('')
+const forgotSuccess = ref('')
+const forgotError = ref('')
+const sendingReset = ref(false)
+
+function closeForgotModal() {
+  showForgotModal.value = false
+  forgotIdentifier.value = ''
+  forgotSuccess.value = ''
+  forgotError.value = ''
+}
+
+async function handleForgotPassword() {
+  forgotError.value = ''
+  forgotSuccess.value = ''
+  sendingReset.value = true
+  
+  try {
+    const res = await api.post('/auth/forgot-password/', {
+      identifier: forgotIdentifier.value
+    })
+    forgotSuccess.value = res.data.message || 'Reset link sent successfully.'
+    // Keep modal open to show success message, clear input
+    forgotIdentifier.value = ''
+  } catch (err: any) {
+    forgotError.value = err.response?.data?.error || 'Failed to send reset link. Please try again later.'
+  } finally {
+    sendingReset.value = false
+  }
+}
 
 async function handleLogin() {
   const success = await authStore.login(credentials.value, rememberMe.value)

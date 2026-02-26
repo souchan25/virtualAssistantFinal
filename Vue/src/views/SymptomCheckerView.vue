@@ -133,11 +133,44 @@
           <button @click="searchQuery = ''" class="text-cpsu-green hover:underline mt-2 font-medium">Clear search</button>
         </div>
 
+        <!-- Additional Information Form -->
+        <div v-if="symptomsStore.selectedSymptoms.length > 0" class="mt-8 pt-6 border-t border-gray-200">
+          <h4 class="text-md sm:text-lg font-bold text-gray-900 mb-4">Additional Information (Optional)</h4>
+          <p class="text-sm text-gray-600 mb-4">Providing your age and sex helps improve the AI prediction accuracy.</p>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Age</label>
+              <input v-model.number="patientAge" type="number" min="1" max="120" class="input-field w-full" placeholder="e.g. 21">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Sex</label>
+              <select v-model="patientSex" class="input-field w-full">
+                <option value="">Prefer not to say</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Duration (Days)</label>
+              <input v-model.number="durationDays" type="number" min="1" class="input-field w-full">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Severity</label>
+              <select v-model.number="severity" class="input-field w-full">
+                <option :value="1">Mild</option>
+                <option :value="2">Moderate</option>
+                <option :value="3">Severe</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         <!-- Actions -->
         <div class="mt-6 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-between">
           <button
             v-if="symptomsStore.selectedSymptoms.length > 0"
-            @click="symptomsStore.clearSelection"
+            @click="startOver"
             class="btn-outline text-xs sm:text-sm"
           >
             Clear All
@@ -148,7 +181,7 @@
             class="btn-primary text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             <span v-if="symptomsStore.loading" class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
-            <span>{{ symptomsStore.loading ? 'Analyzing...' : `Get Prediction (${symptomsStore.selectedSymptoms.length})` }}</span>
+            <span>{{ symptomsStore.loading ? 'Analyzing...' : `Get Prediction (${symptomsStore.selectedSymptoms.length} signs)` }}</span>
           </button>
         </div>
       </div>
@@ -240,6 +273,12 @@ const router = useRouter()
 const authStore = useAuthStore()
 const symptomsStore = useSymptomsStore()
 
+// Form states
+const patientAge = ref<number | null>(null)
+const patientSex = ref('')
+const durationDays = ref(1)
+const severity = ref(2)
+
 const currentStep = ref(1)
 const searchQuery = ref('')
 const mobileMenuOpen = ref(false)
@@ -262,7 +301,16 @@ onMounted(async () => {
 
 async function getPrediction() {
   try {
-    await symptomsStore.submitSymptoms(symptomsStore.selectedSymptoms, true)
+    await symptomsStore.submitSymptoms(
+      symptomsStore.selectedSymptoms, 
+      true, 
+      {
+        patient_age: patientAge.value,
+        patient_sex: patientSex.value,
+        duration_days: durationDays.value,
+        severity: severity.value
+      }
+    )
     currentStep.value = 2
   } catch (error) {
     console.error('Prediction failed:', error)
@@ -273,6 +321,10 @@ function startOver() {
   symptomsStore.clearSelection()
   currentStep.value = 1
   searchQuery.value = ''
+  patientAge.value = null
+  patientSex.value = ''
+  durationDays.value = 1
+  severity.value = 2
 }
 
 function getConfidencePercent(): string {

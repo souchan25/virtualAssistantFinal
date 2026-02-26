@@ -27,18 +27,32 @@ export const useSymptomsStore = defineStore('symptoms', () => {
     }
   }
 
-  async function submitSymptoms(symptoms: string[], generateInsights = true) {
+  async function submitSymptoms(
+    symptoms: string[],
+    generateInsights = true,
+    options: {
+      duration_days?: number
+      severity?: number
+      on_medication?: boolean
+      patient_age?: number | null
+      patient_sex?: string
+    } = {}
+  ) {
     loading.value = true
     error.value = null
     
     try {
-      const response = await api.post('/symptoms/submit/', {
+      const payload: any = {
         symptoms,
-        duration_days: 1,  // Default to 1 day (can be enhanced with UI input later)
-        severity: 2,       // Default to moderate (2)
-        on_medication: false,
+        duration_days: options.duration_days || 1,
+        severity: options.severity || 2,
+        on_medication: options.on_medication || false,
         generate_insights: generateInsights
-      })
+      }
+      if (options.patient_age) payload.patient_age = options.patient_age
+      if (options.patient_sex) payload.patient_sex = options.patient_sex
+
+      const response = await api.post('/symptoms/submit/', payload)
       
       // Django API returns { prediction: {...}, record_id: ..., requires_referral: ... }
       // Extract the prediction object

@@ -62,7 +62,13 @@
           <div class="grid md:grid-cols-2 gap-4 mb-4">
             <div>
               <p class="text-sm font-semibold text-gray-700">📍 Location:</p>
-              <p class="text-lg font-bold text-cpsu-green">{{ emergency.location }}</p>
+              <p class="text-lg font-bold text-cpsu-green">
+                <a v-if="extractMapsUrl(emergency.location)" :href="extractMapsUrl(emergency.location)" target="_blank" class="underline hover:text-blue-700 inline-flex items-center gap-1">
+                  {{ cleanLocationText(emergency.location) }}
+                  <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                </a>
+                <span v-else>{{ emergency.location }}</span>
+              </p>
             </div>
             <div>
               <p class="text-sm font-semibold text-gray-700">⏰ Time:</p>
@@ -159,7 +165,11 @@
               </div>
               
               <p class="text-sm text-gray-600 mb-1">
-                📍 {{ emergency.location }}
+                📍
+                <a v-if="extractMapsUrl(emergency.location)" :href="extractMapsUrl(emergency.location)" target="_blank" class="underline text-cpsu-green hover:text-blue-700">
+                  {{ cleanLocationText(emergency.location) }}
+                </a>
+                <span v-else>{{ emergency.location }}</span>
               </p>
               
               <p class="text-xs text-gray-500">
@@ -282,6 +292,23 @@ const getTimeAgo = (dateString: string) => {
   const hours = Math.floor(minutes / 60)
   if (hours === 1) return '1 hour ago'
   return `${hours} hours ago`
+}
+
+const extractMapsUrl = (location: string): string | undefined => {
+  // Match Google Maps URLs in the location string
+  const urlMatch = location.match(/https?:\/\/maps\.google\.com[^\s)]+/)
+  if (urlMatch) return urlMatch[0]
+
+  // Match raw GPS coordinates like "GPS: 10.123, 122.456"
+  const gpsMatch = location.match(/GPS:\s*([-\d.]+),\s*([-\d.]+)/)
+  if (gpsMatch) return `https://maps.google.com/?q=${gpsMatch[1]},${gpsMatch[2]}`
+
+  return undefined
+}
+
+const cleanLocationText = (location: string): string => {
+  // Remove the URL part for display, keep just the readable location
+  return location.replace(/\s*\(https?:\/\/[^\)]+\)/, '').trim()
 }
 
 onMounted(() => {

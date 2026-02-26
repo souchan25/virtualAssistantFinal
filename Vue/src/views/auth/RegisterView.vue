@@ -64,6 +64,21 @@
               />
             </div>
 
+            <!-- Email -->
+            <div>
+              <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                Email Address *
+              </label>
+              <input
+                id="email"
+                v-model="formData.email"
+                type="email"
+                required
+                class="input-field"
+                placeholder="juan@example.com"
+              />
+            </div>
+
             <!-- Department -->
             <div>
               <label for="department" class="block text-sm font-medium text-gray-700 mb-2">
@@ -227,6 +242,7 @@ const authStore = useAuthStore()
 const formData = ref({
   school_id: '',
   name: '',
+  email: '',
   password: '',
   department: '',
   data_consent_given: false

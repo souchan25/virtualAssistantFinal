@@ -17,13 +17,7 @@
       >
         💬 Messages
       </router-link>
-      <router-link
-        to="/appointments"
-        active-class="text-cpsu-green font-semibold"
-        class="text-gray-700 hover:text-cpsu-green font-medium"
-      >
-        📅 Appointments
-      </router-link>
+
       <router-link
         to="/staff/emergencies"
         active-class="text-cpsu-green font-semibold"
@@ -66,6 +60,14 @@
       >
         📉 Analytics
       </router-link>
+      <router-link
+        v-if="authStore.user?.is_superuser"
+        to="/admin-panel"
+        active-class="text-cpsu-green font-semibold"
+        class="text-gray-700 hover:text-cpsu-green font-medium"
+      >
+        ⚙️ Admin
+      </router-link>
     </div>
 
     <!-- Navigation Menu - Mobile -->
@@ -86,13 +88,7 @@
         >
           💬 Messages
         </router-link>
-        <router-link
-          to="/appointments"
-          active-class="text-cpsu-green font-semibold bg-gray-50 rounded-md"
-          class="text-gray-700 hover:text-cpsu-green font-medium text-sm whitespace-nowrap px-3 py-2"
-        >
-          📅 Appointments
-        </router-link>
+
         <router-link
           to="/staff/emergencies"
           active-class="text-cpsu-green font-semibold bg-gray-50 rounded-md"
@@ -135,11 +131,20 @@
         >
           📉 Analytics
         </router-link>
+        <router-link
+          v-if="authStore.user?.is_superuser"
+          to="/admin-panel"
+          active-class="text-cpsu-green font-semibold bg-gray-50 rounded-md"
+          class="text-gray-700 hover:text-cpsu-green font-medium text-sm whitespace-nowrap px-3 py-2"
+        >
+          ⚙️ Admin
+        </router-link>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-// No script logic needed for simple navigation
+import { useAuthStore } from '@/stores/auth'
+const authStore = useAuthStore()
 </script>

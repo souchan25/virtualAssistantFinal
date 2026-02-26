@@ -222,6 +222,72 @@
           </div>
         </form>
       </div>
+
+      <!-- Change Password Section -->
+      <div class="card mt-8">
+        <h3 class="text-xl font-heading font-bold text-gray-900 mb-4">Change Password</h3>
+        
+        <form @submit.prevent="handleChangePassword">
+          <div v-if="passwordSuccess" class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4">
+            {{ passwordSuccess }}
+          </div>
+          <div v-if="passwordError" class="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-4">
+            {{ passwordError }}
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <label for="old-password" class="block text-sm font-medium text-gray-700 mb-2">
+                Current Password
+              </label>
+              <input
+                id="old-password"
+                v-model="passwordData.old_password"
+                type="password"
+                required
+                class="input-field"
+              />
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <label for="new-password" class="block text-sm font-medium text-gray-700 mb-2">
+                New Password
+              </label>
+              <input
+                id="new-password"
+                v-model="passwordData.new_password"
+                type="password"
+                required
+                minlength="6"
+                class="input-field"
+              />
+            </div>
+            <div>
+              <label for="confirm-password" class="block text-sm font-medium text-gray-700 mb-2">
+                Confirm New Password
+              </label>
+              <input
+                id="confirm-password"
+                v-model="passwordData.confirm_password"
+                type="password"
+                required
+                minlength="6"
+                class="input-field"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            :disabled="changingPassword"
+            class="btn-primary w-full md:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span v-if="changingPassword">Updating...</span>
+            <span v-else>Change Password</span>
+          </button>
+        </form>
+      </div>
     </div>
   </div>
 </template>
@@ -242,6 +308,16 @@ const profileData = ref({
   cpsu_address: ''
 })
 
+// Password State
+const passwordData = ref({
+  old_password: '',
+  new_password: '',
+  confirm_password: ''
+})
+const passwordSuccess = ref('')
+const passwordError = ref('')
+const changingPassword = ref(false)
+
 onMounted(() => {
   if (authStore.user) {
     profileData.value = {
@@ -251,6 +327,49 @@ onMounted(() => {
     }
   }
 })
+
+async function handleChangePassword() {
+  passwordSuccess.value = ''
+  passwordError.value = ''
+  
+  if (passwordData.value.new_password !== passwordData.value.confirm_password) {
+    passwordError.value = 'New passwords do not match'
+    return
+  }
+  
+  if (passwordData.value.new_password.length < 6) {
+    passwordError.value = 'New password must be at least 6 characters'
+    return
+  }
+  
+  changingPassword.value = true
+  
+  try {
+    const res = await api.post('/auth/change-password/', {
+      old_password: passwordData.value.old_password,
+      new_password: passwordData.value.new_password
+    })
+    
+    // Update token in store if provided
+    if (res.data.token) {
+      authStore.setToken(res.data.token)
+    }
+    
+    passwordSuccess.value = 'Password changed successfully!'
+    passwordData.value = {
+      old_password: '',
+      new_password: '',
+      confirm_password: ''
+    }
+    setTimeout(() => {
+      passwordSuccess.value = ''
+    }, 5000)
+  } catch (err: any) {
+    passwordError.value = err.response?.data?.error || 'Failed to change password. Please check your current password.'
+  } finally {
+    changingPassword.value = false
+  }
+}
 
 async function handleUpdate() {
   successMessage.value = ''

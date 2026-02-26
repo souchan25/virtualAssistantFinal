@@ -2,7 +2,7 @@
   <!-- Floating SOS Button - Visible on all pages -->
   <div class="fixed bottom-6 right-6 z-50">
     <button
-      @click="showEmergencyModal = true"
+      @click="openEmergency"
       class="group relative bg-red-600 hover:bg-red-700 text-white rounded-full p-6 shadow-2xl transform transition-all duration-200 hover:scale-110 animate-pulse-slow"
       aria-label="Emergency SOS"
     >
@@ -51,14 +51,38 @@
             <label class="block text-sm font-semibold text-gray-700 mb-2">
               Your Location <span class="text-red-500">*</span>
             </label>
+
+            <!-- GPS Status -->
+            <div v-if="gpsStatus === 'loading'" class="flex items-center gap-2 mb-2 bg-blue-50 text-blue-700 px-3 py-2 rounded-lg text-sm">
+              <div class="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              Detecting your location...
+            </div>
+            <div v-else-if="gpsStatus === 'success'" class="flex items-center gap-2 mb-2 bg-green-50 text-green-700 px-3 py-2 rounded-lg text-sm">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              </svg>
+              GPS location detected
+              <button type="button" @click="getGPSLocation" class="ml-auto text-green-800 hover:underline text-xs font-medium">Refresh</button>
+            </div>
+            <div v-else-if="gpsStatus === 'error'" class="flex items-center gap-2 mb-2 bg-yellow-50 text-yellow-700 px-3 py-2 rounded-lg text-sm">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5C3.312 17.333 4.274 19 5.814 19z"/>
+              </svg>
+              {{ gpsError }}
+              <button type="button" @click="getGPSLocation" class="ml-auto text-yellow-800 hover:underline text-xs font-medium">Retry</button>
+            </div>
+
             <input
               v-model="emergency.location"
               type="text"
-              placeholder="e.g., Main Building, Room 201"
+              placeholder="Auto-detected or type: Main Building, Room 201"
               class="input-field"
               required
             />
-            <p class="text-xs text-gray-500 mt-1">Building name and room number</p>
+            <p class="text-xs text-gray-500 mt-1">
+              <span v-if="gpsCoords">📍 GPS: {{ gpsCoords.lat.toFixed(6) }}, {{ gpsCoords.lng.toFixed(6) }}</span>
+              <span v-else>Location will be auto-detected via GPS</span>
+            </p>
           </div>
 
           <!-- Description (Optional) -->
@@ -143,7 +167,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import api from '@/services/api'
 
 const showEmergencyModal = ref(false)
@@ -158,11 +182,66 @@ const emergency = ref({
 
 const symptomsInput = ref('')
 
+// GPS state
+const gpsStatus = ref<'idle' | 'loading' | 'success' | 'error'>('idle')
+const gpsError = ref('')
+const gpsCoords = ref<{ lat: number; lng: number } | null>(null)
+
 const closeModal = () => {
   if (!loading.value) {
     showEmergencyModal.value = false
     error.value = ''
   }
+}
+
+const openEmergency = () => {
+  showEmergencyModal.value = true
+  // Auto-detect GPS location when opening
+  getGPSLocation()
+}
+
+const getGPSLocation = () => {
+  if (!navigator.geolocation) {
+    gpsStatus.value = 'error'
+    gpsError.value = 'GPS not supported. Please type your location.'
+    return
+  }
+
+  gpsStatus.value = 'loading'
+  gpsError.value = ''
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const lat = position.coords.latitude
+      const lng = position.coords.longitude
+      gpsCoords.value = { lat, lng }
+      gpsStatus.value = 'success'
+
+      // Auto-fill the location field with coordinates + Google Maps link text
+      emergency.value.location = `GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)} (https://maps.google.com/?q=${lat},${lng})`
+    },
+    (err) => {
+      gpsStatus.value = 'error'
+      switch (err.code) {
+        case err.PERMISSION_DENIED:
+          gpsError.value = 'Location access denied. Please type your location manually.'
+          break
+        case err.POSITION_UNAVAILABLE:
+          gpsError.value = 'Location unavailable. Please type your location.'
+          break
+        case err.TIMEOUT:
+          gpsError.value = 'Location request timed out. Please type your location.'
+          break
+        default:
+          gpsError.value = 'Could not detect location. Please type your location.'
+      }
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 30000,
+    }
+  )
 }
 
 const triggerEmergency = async () => {
@@ -176,8 +255,15 @@ const triggerEmergency = async () => {
       .map(s => s.trim())
       .filter(s => s.length > 0)
 
+    // Build location string with GPS data
+    let locationStr = emergency.value.location
+    if (gpsCoords.value && !locationStr.includes('GPS:')) {
+      // Append GPS if user typed a manual location
+      locationStr += ` (GPS: ${gpsCoords.value.lat.toFixed(6)}, ${gpsCoords.value.lng.toFixed(6)})`
+    }
+
     const response = await api.post('/emergency/trigger/', {
-      location: emergency.value.location,
+      location: locationStr,
       description: emergency.value.description,
       symptoms: symptoms
     })
@@ -189,6 +275,8 @@ const triggerEmergency = async () => {
     // Reset form
     emergency.value = { location: '', description: '' }
     symptomsInput.value = ''
+    gpsStatus.value = 'idle'
+    gpsCoords.value = null
 
     // Hide success message after 10 seconds
     setTimeout(() => {

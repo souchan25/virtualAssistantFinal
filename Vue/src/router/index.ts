@@ -52,6 +52,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: false, guestOnly: true }
   },
   {
+    path: '/reset-password',
+    name: 'reset-password',
+    component: () => import('@/views/auth/ResetPasswordView.vue'),
+    meta: { requiresAuth: false, guestOnly: true }
+  },
+  {
     path: '/dashboard',
     name: 'dashboard',
     component: () => import('@/views/DashboardView.vue'),
@@ -75,12 +81,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/MessagesView.vue'),
     meta: { requiresAuth: true }
   },
-  {
-    path: '/appointments',
-    name: 'appointments',
-    component: () => import('@/views/AppointmentsView.vue'),
-    meta: { requiresAuth: true }
-  },
+
   {
     path: '/history',
     name: 'history',
@@ -134,6 +135,12 @@ const routes: RouteRecordRaw[] = [
     name: 'staff-analytics',
     component: () => import('@/views/staff/AnalyticsDashboard.vue'),
     meta: { requiresAuth: true, requiresStaff: true }
+  },
+  {
+    path: '/admin-panel',
+    name: 'admin-panel',
+    component: () => import('@/views/staff/AccountManagement.vue'),
+    meta: {}
   },
   {
     path: '/medications',

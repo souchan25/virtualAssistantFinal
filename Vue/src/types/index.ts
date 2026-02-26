@@ -11,6 +11,7 @@ export interface User {
   data_consent_given: boolean
   consent_date?: string | null
   date_joined: string
+  is_superuser?: boolean
 }
 
 export interface LoginCredentials {
@@ -23,6 +24,7 @@ export interface RegisterData {
   password: string
   password_confirm: string
   name: string
+  email?: string
   department?: string
   cpsu_address?: string
   year_level?: number
