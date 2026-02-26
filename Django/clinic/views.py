@@ -1931,6 +1931,40 @@ class MessageViewSet(viewsets.ModelViewSet):
             Q(sender=user) | Q(recipient=user)
         ).select_related('sender', 'recipient')
 
+    def create(self, request, *args, **kwargs):
+        # Allow looking up recipient by school_id
+        if 'recipient' in request.data:
+            recipient_data = request.data['recipient']
+            if isinstance(recipient_data, str) and not recipient_data.isdigit():
+                try:
+                    # Try to find user by school_id
+                    recipient_user = User.objects.get(school_id=recipient_data)
+
+                    # Update request.data
+                    # DRF request.data can be immutable (QueryDict) or a dict
+                    # To cleanly handle all cases (dict, QueryDict, Immutable), just create a mutable copy
+                    # and use that to initialize the serializer.
+                    data = request.data.copy()
+                    data['recipient'] = recipient_user.id
+
+                    serializer = self.get_serializer(data=data)
+                    serializer.is_valid(raise_exception=True)
+                    self.perform_create(serializer)
+                    headers = self.get_success_headers(serializer.data)
+                    return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+                except User.DoesNotExist:
+                    # Let the serializer validation handle the error (or raise 400 here)
+                    return Response(
+                        {'recipient': [f'User with school_id {recipient_data} not found.']},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                except Exception as e:
+                    logger.error(f"Error resolving recipient: {e}")
+                    # Fallthrough to standard validation
+
+        return super().create(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         try:
             serializer.save(sender=self.request.user)
