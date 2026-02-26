@@ -264,7 +264,7 @@ import { ref } from 'vue'
 import axios from 'axios'
 
 // Use raw axios for admin panel (separate from main app auth)
-const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api'
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
 
 const adminAxios = axios.create({
   baseURL: API_BASE,
