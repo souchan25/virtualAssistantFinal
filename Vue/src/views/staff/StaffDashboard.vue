@@ -55,6 +55,15 @@
         </div>
 
         <div v-else>
+          <!-- Error Alert -->
+          <div v-if="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-start">
+            <span class="text-2xl mr-3">⚠️</span>
+            <div>
+              <p class="font-bold">Error Loading Data</p>
+              <p>{{ error }}</p>
+            </div>
+          </div>
+
           <!-- Stats Cards -->
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
             <div class="card-bordered bg-white hover:shadow-lg transition">
@@ -297,6 +306,7 @@ const authStore = useAuthStore();
 
 const activeTab = ref("overview");
 const loading = ref(false);
+const error = ref("");
 const stats = ref<any>({});
 const recentActivity = ref<any[]>([]);
 
@@ -306,20 +316,31 @@ onMounted(async () => {
 
 async function loadDashboard() {
   loading.value = true;
+  error.value = "";
+
   try {
-    const [dashRes, apptRes, msgRes] = await Promise.all([
+    // Use Promise.allSettled to ensure dashboard loads even if one API fails
+    const results = await Promise.allSettled([
       api.get("/staff/dashboard/"),
       api.get("/appointments/"),
       api.get("/messages/")
-    ])
-    stats.value = dashRes.data;
+    ]);
 
-    // Merge activity
+    const [dashResult, apptResult, msgResult] = results;
+
+    // Process Dashboard Stats
+    if (dashResult.status === 'fulfilled') {
+      stats.value = dashResult.value.data;
+    } else {
+      console.error("Failed to load dashboard stats:", dashResult.reason);
+      error.value = "Failed to load dashboard statistics. Please check your connection.";
+    }
+
     const activity = [];
 
-    // Symptoms
-    if (dashRes.data.recent_symptoms) {
-        activity.push(...dashRes.data.recent_symptoms.map((s: any) => ({
+    // Process Symptoms
+    if (stats.value.recent_symptoms) {
+        activity.push(...stats.value.recent_symptoms.map((s: any) => ({
             type: 'symptom',
             title: 'Symptom Report',
             desc: s.predicted_disease,
@@ -328,10 +349,11 @@ async function loadDashboard() {
         })));
     }
 
-    // Appointments (pending only or recent)
-    // The endpoint returns all. Filter for recent or pending.
-    if (apptRes.data) {
-        const recentAppts = apptRes.data.filter((a: any) => a.status === 'pending').slice(0, 5);
+    // Process Appointments
+    if (apptResult.status === 'fulfilled' && apptResult.value.data) {
+        // Handle pagination
+        const appts = Array.isArray(apptResult.value.data) ? apptResult.value.data : (apptResult.value.data.results || []);
+        const recentAppts = appts.filter((a: any) => a.status === 'pending').slice(0, 5);
         activity.push(...recentAppts.map((a: any) => ({
             type: 'appointment',
             title: 'Appointment Request',
@@ -339,11 +361,15 @@ async function loadDashboard() {
             sub: `${a.student_name} - ${a.scheduled_date}`,
             date: a.created_at
         })));
+    } else if (apptResult.status === 'rejected') {
+        console.error("Failed to load appointments:", apptResult.reason);
     }
 
-    // Messages (Unread)
-    if (msgRes.data) {
-        const unreadMsgs = msgRes.data.filter((m: any) => !m.is_read && m.recipient === authStore.user?.id).slice(0, 5);
+    // Process Messages
+    if (msgResult.status === 'fulfilled' && msgResult.value.data) {
+        // Handle pagination
+        const msgs = Array.isArray(msgResult.value.data) ? msgResult.value.data : (msgResult.value.data.results || []);
+        const unreadMsgs = msgs.filter((m: any) => !m.is_read && m.recipient === authStore.user?.id).slice(0, 5);
         activity.push(...unreadMsgs.map((m: any) => ({
             type: 'message',
             title: 'New Message',
@@ -351,13 +377,16 @@ async function loadDashboard() {
             sub: `From ${m.sender_name}`,
             date: m.timestamp
         })));
+    } else if (msgResult.status === 'rejected') {
+        console.error("Failed to load messages:", msgResult.reason);
     }
 
     // Sort
     recentActivity.value = activity.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10);
 
-  } catch (error: any) {
-    console.error("Failed to load dashboard:", error);
+  } catch (err: any) {
+    console.error("Unexpected error loading dashboard:", err);
+    error.value = "An unexpected error occurred while loading the dashboard.";
   } finally {
     loading.value = false;
   }
