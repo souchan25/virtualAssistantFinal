@@ -3,15 +3,17 @@ API Views for CPSU Virtual Health Assistant
 Implements all endpoints for student and clinic staff
 """
 
-from rest_framework import viewsets, status, generics
+from rest_framework import viewsets, status, generics, serializers
 from rest_framework.decorators import action, api_view, permission_classes, renderer_classes
 from rest_framework.response import Response
+from rest_framework.exceptions import APIException
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, get_user_model
 from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count, Q
+from django.db import IntegrityError
 from datetime import timedelta
 import uuid
 import logging
@@ -1930,7 +1932,14 @@ class MessageViewSet(viewsets.ModelViewSet):
         ).select_related('sender', 'recipient')
 
     def perform_create(self, serializer):
-        serializer.save(sender=self.request.user)
+        try:
+            serializer.save(sender=self.request.user)
+        except IntegrityError:
+            logger.error(f"Database integrity error while creating message. User: {self.request.user.school_id}")
+            raise serializers.ValidationError({"detail": "Database integrity error. Please check your input."})
+        except Exception as e:
+            logger.exception(f"Unexpected error creating message for user {self.request.user.school_id}: {str(e)}")
+            raise APIException("An internal error occurred while sending the message. Please contact support.")
 
     @action(detail=True, methods=['patch'])
     def mark_read(self, request, pk=None):
