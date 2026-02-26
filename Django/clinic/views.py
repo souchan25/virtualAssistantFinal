@@ -53,8 +53,170 @@ User = get_user_model()
 
 
 # ============================================================================
+# Admin Account Management (superuser-only)
+# ============================================================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def admin_list_accounts(request):
+    """
+    List all user accounts (superuser only)
+    GET /api/admin/accounts/
+    Query params: role, search, is_active
+    """
+    if not request.user.is_superuser:
+        return Response({'error': 'Admin access required'}, status=status.HTTP_403_FORBIDDEN)
+
+    users = User.objects.all().order_by('-date_joined')
+
+    # Filters
+    role = request.GET.get('role')
+    if role:
+        users = users.filter(role=role)
+
+    search = request.GET.get('search', '').strip()
+    if search:
+        users = users.filter(
+            Q(school_id__icontains=search) |
+            Q(name__icontains=search)
+        )
+
+    is_active = request.GET.get('is_active')
+    if is_active is not None:
+        users = users.filter(is_active=is_active.lower() == 'true')
+
+    data = []
+    for u in users[:200]:
+        data.append({
+            'id': str(u.id) if hasattr(u, 'id') else str(u.pk),
+            'school_id': u.school_id,
+            'name': u.name,
+            'role': u.role,
+            'department': u.department,
+            'is_active': u.is_active,
+            'is_superuser': u.is_superuser,
+            'date_joined': u.date_joined.isoformat(),
+        })
+
+    return Response({
+        'count': len(data),
+        'accounts': data
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def admin_create_account(request):
+    """
+    Create a staff or student account (superuser only)
+    POST /api/admin/accounts/create/
+    Body: { school_id, password, name, role, department }
+    """
+    if not request.user.is_superuser:
+        return Response({'error': 'Admin access required'}, status=status.HTTP_403_FORBIDDEN)
+
+    school_id = request.data.get('school_id', '').strip()
+    password = request.data.get('password', '').strip()
+    name = request.data.get('name', '').strip()
+    role = request.data.get('role', 'staff')
+    department = request.data.get('department', '')
+
+    if not school_id or not password:
+        return Response({'error': 'school_id and password are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if len(password) < 6:
+        return Response({'error': 'Password must be at least 6 characters'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if User.objects.filter(school_id=school_id).exists():
+        return Response({'error': f'User with school_id "{school_id}" already exists'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = User.objects.create_user(
+            school_id=school_id,
+            password=password,
+            name=name,
+            role=role,
+            department=department,
+            is_staff=role == 'staff',
+        )
+
+        return Response({
+            'message': f'{role.capitalize()} account created successfully',
+            'account': {
+                'id': str(user.id) if hasattr(user, 'id') else str(user.pk),
+                'school_id': user.school_id,
+                'name': user.name,
+                'role': user.role,
+                'is_active': user.is_active,
+            }
+        }, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        logger.error(f"Error creating account: {e}")
+        return Response({'error': 'Failed to create account'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def admin_toggle_account(request, school_id):
+    """
+    Toggle account active status (superuser only)
+    PATCH /api/admin/accounts/<school_id>/toggle/
+    """
+    if not request.user.is_superuser:
+        return Response({'error': 'Admin access required'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        user = User.objects.get(school_id=school_id)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if user == request.user:
+        return Response({'error': 'Cannot deactivate your own account'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.is_active = not user.is_active
+    user.save()
+
+    return Response({
+        'message': f'Account {"activated" if user.is_active else "deactivated"}',
+        'is_active': user.is_active
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def admin_reset_password(request, school_id):
+    """
+    Reset a user's password (superuser only)
+    POST /api/admin/accounts/<school_id>/reset-password/
+    Body: { new_password }
+    """
+    if not request.user.is_superuser:
+        return Response({'error': 'Admin access required'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        user = User.objects.get(school_id=school_id)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    new_password = request.data.get('new_password', '').strip()
+    if not new_password or len(new_password) < 6:
+        return Response({'error': 'Password must be at least 6 characters'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.set_password(new_password)
+    user.save()
+
+    return Response({'message': f'Password reset for {user.school_id}'})
+
+
+# ============================================================================
 # Authentication Views
 # ============================================================================
+
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.core.mail import send_mail
+from django.conf import settings
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -138,6 +300,145 @@ def logout_user(request):
     except (AttributeError, ObjectDoesNotExist):
         pass
     return Response({'message': 'Logout successful'})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    """
+    Change the current user's password.
+    POST /api/auth/change-password/
+    """
+    user = request.user
+    old_password = request.data.get('old_password')
+    new_password = request.data.get('new_password')
+    
+    if not old_password or not new_password:
+        return Response({'error': 'Please provide both current and new passwords.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    if not user.check_password(old_password):
+        return Response({'error': 'Incorrect current password.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    if len(new_password) < 6:
+        return Response({'error': 'New password must be at least 6 characters long.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    user.set_password(new_password)
+    user.save()
+    
+    # Optional: Delete current token and issue new one for security
+    user.auth_token.delete()
+    new_token, _ = Token.objects.get_or_create(user=user)
+    
+    AuditLog.objects.create(
+        user=user,
+        action="PASSWORD_CHANGE",
+        ip_address=request.META.get('REMOTE_ADDR'),
+        details={"source": "user_profile"}
+    )
+    
+    return Response({
+        'message': 'Password changed successfully.',
+        'token': new_token.key
+    })
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def forgot_password(request):
+    """
+    Send a password reset email via Brevo.
+    POST /api/auth/forgot-password/
+    """
+    identifier = request.data.get('identifier')
+    if not identifier:
+        return Response({'error': 'Please provide your School ID or Email address.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    user = User.objects.filter(Q(email__iexact=identifier) | Q(school_id__iexact=identifier)).first()
+    
+    if user and user.email:
+        # Generate reset token and uid
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        
+        # Build reset link pointing to Vue frontend
+        frontend_url = request.META.get('HTTP_ORIGIN', 'http://localhost:5173')
+        reset_link = f"{frontend_url}/reset-password?uid={uid}&token={token}"
+        
+        subject = "Action Required: Password Reset for CPSU Health Assistant"
+        body = f"""Hello {user.name},
+
+You or someone else has requested a password reset for your CPSU Virtual Health Assistant account.
+
+Please click the link below to reset your password:
+{reset_link}
+
+If you did not request this, please ignore this email. Your password will remain unchanged.
+
+Best regards,
+The CPSU Clinic Team"""
+        
+        try:
+            send_mail(
+                subject,
+                body,
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email],
+                fail_silently=False,
+            )
+            logger.info(f"Password reset email sent to {user.email}")
+        except Exception as e:
+            logger.error(f"Failed to send reset email: {e}")
+            return Response(
+                {'error': 'Failed to send email. Ensure your email address is valid.'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+            
+    # Always return success message to prevent user enumeration
+    return Response({'message': 'If an account exists with that email address, a password reset link has been sent.'})
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def reset_password_confirm(request):
+    """
+    Verify reset token and set new password.
+    POST /api/auth/reset-password-confirm/
+    """
+    uidb64 = request.data.get('uid')
+    token = request.data.get('token')
+    new_password = request.data.get('new_password')
+    
+    if not uidb64 or not token or not new_password:
+        return Response({'error': 'Missing required fields.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    if len(new_password) < 6:
+        return Response({'error': 'Password must be at least 6 characters long.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+        
+    if user is not None and default_token_generator.check_token(user, token):
+        user.set_password(new_password)
+        user.save()
+        
+        # Invalidate old auth token to force logout elsewhere
+        try:
+            user.auth_token.delete()
+        except ObjectDoesNotExist:
+            pass
+            
+        AuditLog.objects.create(
+            user=user,
+            action="PASSWORD_RESET",
+            ip_address=request.META.get('REMOTE_ADDR'),
+            details={"source": "email_token"}
+        )
+        return Response({'message': 'Password has been reset successfully. You can now log in.'})
+    else:
+        return Response({'error': 'The password reset link is invalid or has expired.'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 # ============================================================================
@@ -291,6 +592,8 @@ def submit_symptoms(request):
             severity=data['severity'],
             on_medication=data.get('on_medication', False),
             medication_adherence=data.get('medication_adherence'),
+            patient_age=data.get('patient_age'),
+            patient_sex=data.get('patient_sex', ''),
             predicted_disease=prediction_result['predicted_disease'],
             confidence_score=prediction_result['confidence_score'],
             top_predictions=prediction_result['top_predictions'],
@@ -1932,18 +2235,22 @@ class MessageViewSet(viewsets.ModelViewSet):
         ).select_related('sender', 'recipient')
 
     def create(self, request, *args, **kwargs):
-        # Allow looking up recipient by school_id
+        # Allow looking up recipient by school_id or UUID
         if 'recipient' in request.data:
             recipient_data = request.data['recipient']
             if isinstance(recipient_data, str) and not recipient_data.isdigit():
+                # First, check if it's a valid UUID (for reply-by-PK)
                 try:
-                    # Try to find user by school_id
-                    recipient_user = User.objects.get(school_id=recipient_data)
+                    import uuid as uuid_mod
+                    uuid_mod.UUID(str(recipient_data))
+                    # It's a valid UUID - let the default serializer handle it
+                    return super().create(request, *args, **kwargs)
+                except (ValueError, AttributeError):
+                    pass
 
-                    # Update request.data
-                    # DRF request.data can be immutable (QueryDict) or a dict
-                    # To cleanly handle all cases (dict, QueryDict, Immutable), just create a mutable copy
-                    # and use that to initialize the serializer.
+                # Otherwise, try to find user by school_id
+                try:
+                    recipient_user = User.objects.get(school_id=recipient_data)
                     data = request.data.copy()
                     data['recipient'] = recipient_user.id
 
@@ -1954,16 +2261,31 @@ class MessageViewSet(viewsets.ModelViewSet):
                     return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
                 except User.DoesNotExist:
-                    # Let the serializer validation handle the error (or raise 400 here)
                     return Response(
                         {'recipient': [f'User with school_id {recipient_data} not found.']},
                         status=status.HTTP_400_BAD_REQUEST
                     )
                 except Exception as e:
                     logger.error(f"Error resolving recipient: {e}")
-                    # Fallthrough to standard validation
 
         return super().create(request, *args, **kwargs)
+
+    @action(detail=False, methods=['get'])
+    def user_search(self, request):
+        """Search for a user by school_id to compose a message"""
+        school_id = request.query_params.get('school_id', '').strip()
+        if not school_id:
+            return Response({'error': 'school_id parameter required'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user = User.objects.get(school_id=school_id)
+            return Response({
+                'id': str(user.id),
+                'name': user.name,
+                'school_id': user.school_id,
+                'role': user.role,
+            })
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
     def perform_create(self, serializer):
         try:

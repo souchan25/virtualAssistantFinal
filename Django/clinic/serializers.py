@@ -21,7 +21,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['school_id', 'password', 'password_confirm', 'name', 'department', 'cpsu_address', 'role', 'data_consent_given']
+        fields = ['school_id', 'password', 'password_confirm', 'name', 'department', 'cpsu_address', 'email', 'role', 'data_consent_given']
         extra_kwargs = {
             'role': {'read_only': True},  # Role is set based on context, not user input
         }
@@ -43,8 +43,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['id', 'school_id', 'name', 'department', 'cpsu_address', 'role', 'data_consent_given', 'consent_date', 'date_joined']
-        read_only_fields = ['id', 'school_id', 'role', 'consent_date', 'date_joined']
+        fields = ['id', 'school_id', 'name', 'department', 'cpsu_address', 'role', 'data_consent_given', 'consent_date', 'date_joined', 'is_superuser']
+        read_only_fields = ['id', 'school_id', 'role', 'consent_date', 'date_joined', 'is_superuser']
 
 
 class SymptomRecordSerializer(serializers.ModelSerializer):
@@ -94,6 +94,13 @@ class SymptomSubmissionSerializer(serializers.Serializer):
     )
     on_medication = serializers.BooleanField(default=False, required=False)
     medication_adherence = serializers.BooleanField(required=False, allow_null=True)
+    patient_age = serializers.IntegerField(min_value=1, max_value=120, required=False, allow_null=True)
+    patient_sex = serializers.ChoiceField(
+        choices=[('male', 'Male'), ('female', 'Female')],
+        required=False,
+        allow_blank=True,
+        default=''
+    )
 
 
 class DiseasePredictionSerializer(serializers.Serializer):

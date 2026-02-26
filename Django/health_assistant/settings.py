@@ -60,6 +60,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Serve static files in production
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -156,6 +157,11 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -183,7 +189,7 @@ REST_FRAMEWORK = {
 }
 
 # CORS settings (for frontend development)
-CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'False') == 'True'
+CORS_ALLOW_ALL_ORIGINS = DEBUG or os.getenv('CORS_ALLOW_ALL_ORIGINS', 'False') == 'True'
 CORS_ALLOWED_ORIGINS = _get_env_list(
     'CORS_ALLOWED_ORIGINS',
     [
@@ -191,6 +197,10 @@ CORS_ALLOWED_ORIGINS = _get_env_list(
         'http://127.0.0.1:3000',
         'http://localhost:5173',      # Vite/Vue default
         'http://127.0.0.1:5173',
+        'http://localhost:8081',      # Expo web dev server
+        'http://127.0.0.1:8081',
+        'http://localhost:19006',     # Expo web (alternate port)
+        'http://127.0.0.1:19006',
         # Azure Static Web Apps (Production)
         'https://delightful-forest-0eb2a9000.6.azurestaticapps.net',
         # Custom domain
@@ -264,6 +274,15 @@ CPSU_DEPARTMENTS = [
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_AGE = 86400  # 24 hours
+
+# Email Settings (Brevo SMTP via python backend)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp-relay.brevo.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@cpsuhealthassistant.app')
 
 # Security settings for production
 # SECURE_SSL_REDIRECT = True

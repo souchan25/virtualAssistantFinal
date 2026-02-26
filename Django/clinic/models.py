@@ -85,6 +85,12 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         blank=True,
         verbose_name='CPSU Address'
     )
+    email = models.EmailField(
+        unique=True, 
+        null=True, 
+        blank=True,
+        help_text='Email address for password resets'
+    )
     
     # Django required fields
     is_active = models.BooleanField(default=True)
@@ -153,6 +159,24 @@ class SymptomRecord(models.Model):
     severity = models.IntegerField(
         choices=SEVERITY_CHOICES,
         default=1
+    )
+    
+    # Patient demographics (per-submission context)
+    SEX_CHOICES = [
+        ('male', 'Male'),
+        ('female', 'Female'),
+    ]
+    patient_age = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text='Patient age at time of report'
+    )
+    patient_sex = models.CharField(
+        max_length=10,
+        choices=SEX_CHOICES,
+        blank=True,
+        default='',
+        help_text='Patient biological sex'
     )
     
     # ML prediction results

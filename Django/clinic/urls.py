@@ -20,6 +20,9 @@ urlpatterns = [
     path('auth/register/', views.register_user, name='register'),
     path('auth/login/', views.login_user, name='login'),
     path('auth/logout/', views.logout_user, name='logout'),
+    path('auth/change-password/', views.change_password, name='change-password'),
+    path('auth/forgot-password/', views.forgot_password, name='forgot-password'),
+    path('auth/reset-password-confirm/', views.reset_password_confirm, name='reset-password-confirm'),
     
     # User profile endpoints
     path('profile/', views.UserProfileView.as_view(), name='profile'),
@@ -74,6 +77,12 @@ urlpatterns = [
     path('admin/health-records/', admin_views.admin_health_records_page, name='admin-health'),
     path('admin/api-analytics/', admin_views.admin_api_analytics_page, name='admin-analytics'),
     path('admin/settings/', admin_views.admin_settings_page, name='admin-settings'),
+    
+    # Admin Account Management API (superuser-only)
+    path('admin/accounts/', views.admin_list_accounts, name='admin-list-accounts'),
+    path('admin/accounts/create/', views.admin_create_account, name='admin-create-account'),
+    path('admin/accounts/<str:school_id>/toggle/', views.admin_toggle_account, name='admin-toggle-account'),
+    path('admin/accounts/<str:school_id>/reset-password/', views.admin_reset_password, name='admin-reset-password'),
     
     # Router URLs (viewsets)
     path('', include(router.urls)),
