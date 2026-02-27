@@ -118,6 +118,7 @@
                 <button
                   type="button"
                   @click="showPassword = !showPassword"
+                  :aria-label="showPassword ? 'Hide password' : 'Show password'"
                   class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                 >
                   <span v-if="!showPassword">
@@ -164,6 +165,7 @@
                 <button
                   type="button"
                   @click="showConfirmPassword = !showConfirmPassword"
+                  :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'"
                   class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                 >
                   <span v-if="!showConfirmPassword">

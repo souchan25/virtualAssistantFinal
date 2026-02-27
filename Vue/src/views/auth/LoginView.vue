@@ -66,6 +66,7 @@
               <button
                 type="button"
                 @click="showPassword = !showPassword"
+                :aria-label="showPassword ? 'Hide password' : 'Show password'"
                 class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
               >
                 <span v-if="!showPassword">
@@ -132,7 +133,7 @@
         <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" @click="closeForgotModal"></div>
         <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 overflow-hidden">
           <div class="absolute top-4 right-4">
-            <button @click="closeForgotModal" class="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition">
+            <button @click="closeForgotModal" aria-label="Close modal" class="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
           </div>
