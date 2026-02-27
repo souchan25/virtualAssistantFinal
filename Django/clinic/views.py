@@ -1103,25 +1103,48 @@ def clinic_dashboard(request):
         referral_triggered=False
     ).count()
     
-    # Department breakdown - Calculate from real data
-    departments = User.objects.filter(role='student').values_list('department', flat=True).distinct()
+    # Department breakdown - Optimized with aggregation to avoid N+1 queries
+
+    # 1. Get total students per department
+    student_counts = User.objects.filter(
+        role='student'
+    ).exclude(
+        department__exact=''
+    ).values('department').annotate(
+        total=Count('id')
+    )
+
+    # Convert to dict for fast lookup: {'CS': 50, 'Eng': 40}
+    dept_totals = {item['department']: item['total'] for item in student_counts}
+
+    # 2. Get students with symptoms per department (last 30 days)
+    symptom_counts = SymptomRecord.objects.filter(
+        created_at__date__gte=thirty_days_ago
+    ).exclude(
+        student__department__exact=''
+    ).values('student__department').annotate(
+        symptom_students=Count('student', distinct=True)
+    )
+
+    # Convert to dict: {'CS': 10, 'Eng': 5}
+    dept_symptoms = {item['student__department']: item['symptom_students'] for item in symptom_counts}
+
+    # 3. Combine results
     dept_breakdown = []
+    all_depts = set(dept_totals.keys()) | set(dept_symptoms.keys())
     
-    for dept in departments:
-        if not dept:  # Skip None/empty departments
+    for dept in all_depts:
+        if not dept:
             continue
             
-        total_in_dept = User.objects.filter(role='student', department=dept).count()
-        students_with_symptoms = SymptomRecord.objects.filter(
-            student__department=dept,
-            created_at__date__gte=thirty_days_ago
-        ).values('student').distinct().count()
+        total = dept_totals.get(dept, 0)
+        with_symptoms = dept_symptoms.get(dept, 0)
         
         dept_breakdown.append({
             'department': dept,
-            'total_students': total_in_dept,
-            'students_with_symptoms': students_with_symptoms,
-            'percentage': round((students_with_symptoms / total_in_dept * 100), 1) if total_in_dept > 0 else 0
+            'total_students': total,
+            'students_with_symptoms': with_symptoms,
+            'percentage': round((with_symptoms / total * 100), 1) if total > 0 else 0
         })
     
     # Sort by students with symptoms (descending)
