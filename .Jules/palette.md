@@ -1,0 +1,3 @@
+## 2024-05-24 - Icon-only Button Accessibility
+**Learning:** Found multiple instances of icon-only buttons lacking descriptive names in `Vue/src/views/MessagesView.vue`, which is a common accessibility issue for screen readers.
+**Action:** Added `aria-label` attributes to these buttons (e.g., "Go Back", "New message", "Send message") to ensure their purpose is communicated clearly to assistive technologies.

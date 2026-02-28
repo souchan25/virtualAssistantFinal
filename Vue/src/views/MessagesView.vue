@@ -5,7 +5,7 @@
       <div class="max-w-5xl mx-auto px-4 py-3">
         <div class="flex items-center gap-3 sm:gap-4">
           <!-- Always visible back button to exit messages -->
-          <button @click="goBack" class="text-gray-500 hover:text-cpsu-green transition-colors flex items-center gap-1" title="Go Back">
+          <button aria-label="Go Back" @click="goBack" class="text-gray-500 hover:text-cpsu-green transition-colors flex items-center gap-1" title="Go Back">
             <svg class="w-5 h-5 lg:w-6 lg:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
             </svg>
@@ -15,7 +15,7 @@
           <div class="h-6 w-px bg-gray-300"></div>
 
           <!-- Mobile: Back to conversation list -->
-          <button v-if="activeConversation" @click="activeConversation = null" class="text-gray-500 hover:text-cpsu-green transition-colors sm:hidden">
+          <button aria-label="Back to conversation list" v-if="activeConversation" @click="activeConversation = null" class="text-gray-500 hover:text-cpsu-green transition-colors sm:hidden">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
             </svg>
@@ -37,7 +37,7 @@
                 </span>
                 Live
               </div>
-              <button @click="showNewChat = true" class="bg-cpsu-green hover:bg-cpsu-green-dark text-white rounded-full p-1.5 sm:p-2 shadow transition-colors flex items-center justify-center" title="New message">
+              <button aria-label="New message" @click="showNewChat = true" class="bg-cpsu-green hover:bg-cpsu-green-dark text-white rounded-full p-1.5 sm:p-2 shadow transition-colors flex items-center justify-center" title="New message">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                 </svg>
@@ -214,6 +214,7 @@
                 ></textarea>
               </div>
               <button
+                aria-label="Send message"
                 @click="sendChatMessage"
                 :disabled="!chatInput.trim() || sending"
                 class="flex-shrink-0 bg-cpsu-green hover:bg-cpsu-green-dark text-white rounded-full p-2.5 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
@@ -236,7 +237,7 @@
         <div class="relative bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl shadow-2xl animate-slide-up" @click.stop>
           <div class="flex items-center justify-between p-4 border-b bg-gray-50 sm:rounded-t-2xl">
             <h2 class="font-bold text-gray-900">New Conversation</h2>
-            <button @click="showNewChat = false" class="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-200 transition">
+            <button aria-label="Close new chat modal" @click="showNewChat = false" class="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-200 transition">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
               </svg>
