@@ -406,3 +406,52 @@ class MLPredictorTests(TestCase):
         
         self.assertIsInstance(symptoms, list)
         self.assertGreater(len(symptoms), 0)
+
+class FollowUpListPerformanceTests(APITestCase):
+    """Test performance of followup listing"""
+
+    def setUp(self):
+        from .models import FollowUp
+        self.student = User.objects.create_user(
+            school_id='2024-900',
+            password='pass123',
+            name='Student Perf',
+            role='student',
+            data_consent_given=True
+        )
+        self.staff = User.objects.create_user(
+            school_id='staff-900',
+            password='pass123',
+            name='Staff Perf',
+            role='staff'
+        )
+        self.symptom = SymptomRecord.objects.create(
+            student=self.student,
+            symptoms=['fever'],
+            duration_days=1,
+            severity=1,
+            predicted_disease='Cold'
+        )
+
+        # Create multiple followups
+        for i in range(10):
+            FollowUp.objects.create(
+                student=self.student,
+                symptom_record=self.symptom,
+                scheduled_date=timezone.now() + timedelta(days=i),
+                status='pending'
+            )
+
+    def test_followup_list_query_count(self):
+        """Verify N+1 query fix for followup_list"""
+        self.client.force_authenticate(user=self.staff)
+
+        # Depending on auth and middleware, queries might be around 2-5, not 10+
+        # Let's verify it's O(1) regarding the number of followups
+        # The exact number may vary slightly based on DRF/Django version/setup,
+        # but shouldn't scale with the 10 followups created.
+        with self.assertNumQueries(1):
+            response = self.client.get('/api/followups/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 10)
