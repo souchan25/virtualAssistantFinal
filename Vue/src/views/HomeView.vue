@@ -14,11 +14,11 @@
           
           <!-- Desktop Navigation -->
           <div class="hidden md:flex items-center space-x-8">
-            <a @click="scrollToSection('home')" class="nav-link cursor-pointer">Home</a>
-            <a @click="scrollToSection('about')" class="nav-link cursor-pointer">About</a>
-            <a @click="scrollToSection('features')" class="nav-link cursor-pointer">Features</a>
-            <a @click="scrollToSection('walkthrough')" class="nav-link cursor-pointer">How It Works</a>
-            <a @click="scrollToSection('contact')" class="nav-link cursor-pointer">Contact</a>
+            <button type="button" @click="scrollToSection('home')" class="nav-link cursor-pointer">Home</button>
+            <button type="button" @click="scrollToSection('about')" class="nav-link cursor-pointer">About</button>
+            <button type="button" @click="scrollToSection('features')" class="nav-link cursor-pointer">Features</button>
+            <button type="button" @click="scrollToSection('walkthrough')" class="nav-link cursor-pointer">How It Works</button>
+            <button type="button" @click="scrollToSection('contact')" class="nav-link cursor-pointer">Contact</button>
           </div>
 
           <div class="hidden md:flex space-x-3">
@@ -31,7 +31,7 @@
           </div>
 
           <!-- Mobile Menu Button -->
-          <button @click="mobileMenuOpen = !mobileMenuOpen" class="md:hidden text-cpsu-green">
+          <button type="button" @click="mobileMenuOpen = !mobileMenuOpen" class="md:hidden text-cpsu-green" aria-label="Toggle mobile menu" :aria-expanded="mobileMenuOpen">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path v-if="!mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
               <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -42,11 +42,11 @@
         <!-- Mobile Menu -->
         <div v-if="mobileMenuOpen" class="md:hidden mt-4 pb-4 border-t border-gray-200">
           <div class="flex flex-col space-y-3 mt-4">
-            <a @click="scrollToSection('home'); mobileMenuOpen = false" class="nav-link cursor-pointer">Home</a>
-            <a @click="scrollToSection('about'); mobileMenuOpen = false" class="nav-link cursor-pointer">About</a>
-            <a @click="scrollToSection('features'); mobileMenuOpen = false" class="nav-link cursor-pointer">Features</a>
-            <a @click="scrollToSection('walkthrough'); mobileMenuOpen = false" class="nav-link cursor-pointer">How It Works</a>
-            <a @click="scrollToSection('contact'); mobileMenuOpen = false" class="nav-link cursor-pointer">Contact</a>
+            <button type="button" @click="scrollToSection('home'); mobileMenuOpen = false" class="nav-link cursor-pointer text-left">Home</button>
+            <button type="button" @click="scrollToSection('about'); mobileMenuOpen = false" class="nav-link cursor-pointer text-left">About</button>
+            <button type="button" @click="scrollToSection('features'); mobileMenuOpen = false" class="nav-link cursor-pointer text-left">Features</button>
+            <button type="button" @click="scrollToSection('walkthrough'); mobileMenuOpen = false" class="nav-link cursor-pointer text-left">How It Works</button>
+            <button type="button" @click="scrollToSection('contact'); mobileMenuOpen = false" class="nav-link cursor-pointer text-left">Contact</button>
             <router-link to="/login" class="btn-outline !border-cpsu-green !text-cpsu-green text-center">Login</router-link>
             <router-link to="/register" class="bg-cpsu-green text-white font-semibold px-5 py-2.5 rounded-lg text-center hover:bg-cpsu-green-dark transition-colors">Register</router-link>
           </div>
@@ -681,7 +681,7 @@ const scrollToSection = (sectionId: string) => {
 
 <style scoped>
 .nav-link {
-  @apply text-gray-700 hover:text-cpsu-green font-medium transition-colors;
+  @apply text-gray-700 hover:text-cpsu-green font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cpsu-green focus-visible:ring-offset-2 rounded-sm;
 }
 
 .feature-card {
