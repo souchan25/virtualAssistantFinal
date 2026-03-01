@@ -1,0 +1,3 @@
+## 2025-03-01 - Switch custom internal link scrollers to button elements
+**Learning:** In the HomeView, navigation items that trigger JavaScript scrolling (`@click="scrollToSection"`) were implemented as `<a>` tags without `href` attributes. This breaks keyboard navigation (tabbing) and screen reader behavior as they do not receive focus or act as interactive elements.
+**Action:** Always use `<button type="button">` for interactive elements that don't change the URL or navigate, ensuring they receive focus naturally. Include visible focus states (e.g., `focus-visible:ring`) to improve accessibility for keyboard users.
