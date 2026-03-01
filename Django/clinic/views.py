@@ -1161,13 +1161,16 @@ def student_directory(request):
     Get filtered list of students with health records
     GET /api/staff/students/
     """
-    from django.db.models import Prefetch, Avg
+    from django.db.models import Prefetch, Avg, Count, Q
     from rest_framework.pagination import PageNumberPagination
     
+    # Pre-fetch optimized related data to avoid N+1 queries in the loop
     queryset = User.objects.filter(role='student').prefetch_related(
-        'symptom_records',
-        'medications',
-        'follow_ups'
+        Prefetch('symptom_records', queryset=SymptomRecord.objects.order_by('-created_at'), to_attr='prefetched_symptoms'),
+        Prefetch('medications', queryset=Medication.objects.filter(is_active=True).prefetch_related('logs', 'prescribed_by', 'student'), to_attr='active_meds'),
+        Prefetch('follow_ups', queryset=FollowUp.objects.filter(status__in=['pending', 'overdue']), to_attr='pending_followups')
+    ).annotate(
+        total_symptom_visits=Count('symptom_records', distinct=True)
     ).order_by('name')
     
     # Filters
@@ -1204,37 +1207,52 @@ def student_directory(request):
     paginator.page_size_query_param = 'page_size'
     result_page = paginator.paginate_queryset(queryset, request)
 
+    # Pre-calculate medication logs (adherence) for the whole page to avoid N+1
+    student_ids = [student.id for student in result_page]
+    med_logs_data = MedicationLog.objects.filter(
+        medication__student_id__in=student_ids
+    ).values('medication__student_id').annotate(
+        total=Count('id'),
+        taken=Count('id', filter=Q(status='taken'))
+    )
+    adherence_map = {
+        item['medication__student_id']: {
+            'total': item['total'],
+            'taken': item['taken']
+        } for item in med_logs_data
+    }
+
     # Build enriched student data
     students_data = []
     for student in result_page:
-        # Get symptom records
-        recent_symptoms = student.symptom_records.order_by('-created_at')[:5]
-        last_visit = recent_symptoms.first().created_at if recent_symptoms.exists() else None
+        # Use prefetched symptom records
+        recent_symptoms = student.prefetched_symptoms[:5]
+        last_visit = recent_symptoms[0].created_at if recent_symptoms else None
         
-        # Get medications
-        active_meds = student.medications.filter(is_active=True)
+        # Use prefetched medications
+        active_meds = student.active_meds
         
-        # Calculate adherence
-        med_logs = MedicationLog.objects.filter(medication__student=student)
-        total_logs = med_logs.count()
-        taken_logs = med_logs.filter(status='taken').count()
+        # Use pre-calculated adherence
+        stats = adherence_map.get(student.id, {'total': 0, 'taken': 0})
+        total_logs = stats['total']
+        taken_logs = stats['taken']
         adherence_rate = round((taken_logs / total_logs * 100) if total_logs > 0 else 100, 1)
         
-        # Get follow-ups
-        pending_followups = student.follow_ups.filter(status='pending').exists()
+        # Use prefetched follow-ups
+        has_pending_followup = len(student.pending_followups) > 0
         
         student_data = {
             'id': student.id,
             'name': student.name,
             'school_id': student.school_id,
             'department': student.department,
-            'total_visits': student.symptom_records.count(),
+            'total_visits': student.total_symptom_visits,
             'last_visit': last_visit.isoformat() if last_visit else None,
-            'on_medication': active_meds.exists(),
-            'medication_count': active_meds.count(),
+            'on_medication': len(active_meds) > 0,
+            'medication_count': len(active_meds),
             'adherence_rate': adherence_rate,
-            'pending_followup': pending_followups,
-            'recent_symptoms': recent_symptoms.exists(),
+            'pending_followup': has_pending_followup,
+            'recent_symptoms': len(recent_symptoms) > 0,
             'recent_symptom_reports': SymptomRecordSerializer(recent_symptoms, many=True).data,
             'medications': MedicationSerializer(active_meds, many=True).data
         }
