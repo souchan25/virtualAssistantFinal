@@ -1164,10 +1164,18 @@ def student_directory(request):
     from django.db.models import Prefetch, Avg
     from rest_framework.pagination import PageNumberPagination
     
+    # ⚡ Bolt: Prefetch all medications and their logs into distinct attributes
+    # to avoid N+1 queries during adherence calculation, while preserving
+    # the existing 'medications' relation for the active meds check.
     queryset = User.objects.filter(role='student').prefetch_related(
         'symptom_records',
+        'follow_ups',
         'medications',
-        'follow_ups'
+        Prefetch(
+            'medications',
+            queryset=Medication.objects.prefetch_related('logs'),
+            to_attr='all_medications_with_logs'
+        )
     ).order_by('name')
     
     # Filters
@@ -1207,34 +1215,41 @@ def student_directory(request):
     # Build enriched student data
     students_data = []
     for student in result_page:
-        # Get symptom records
-        recent_symptoms = student.symptom_records.order_by('-created_at')[:5]
-        last_visit = recent_symptoms.first().created_at if recent_symptoms.exists() else None
+        # ⚡ Bolt: Use Python-side sorting/slicing on prefetched symptom_records
+        # rather than student.symptom_records.order_by() which triggers new queries.
+        all_symptoms = list(student.symptom_records.all())
+        all_symptoms.sort(key=lambda x: x.created_at, reverse=True)
+        recent_symptoms = all_symptoms[:5]
+        last_visit = recent_symptoms[0].created_at if recent_symptoms else None
+
+        # ⚡ Bolt: Filter active medications in Python to avoid hitting the DB
+        active_meds = [m for m in student.all_medications_with_logs if m.is_active]
         
-        # Get medications
-        active_meds = student.medications.filter(is_active=True)
+        # ⚡ Bolt: Calculate adherence using prefetched logs to fix N+1 query bottleneck
+        total_logs = 0
+        taken_logs = 0
+        for med in student.all_medications_with_logs:
+            logs = list(med.logs.all())
+            total_logs += len(logs)
+            taken_logs += sum(1 for log in logs if log.status == 'taken')
         
-        # Calculate adherence
-        med_logs = MedicationLog.objects.filter(medication__student=student)
-        total_logs = med_logs.count()
-        taken_logs = med_logs.filter(status='taken').count()
         adherence_rate = round((taken_logs / total_logs * 100) if total_logs > 0 else 100, 1)
         
-        # Get follow-ups
-        pending_followups = student.follow_ups.filter(status='pending').exists()
+        # ⚡ Bolt: Check for pending followups in Python
+        pending_followups = any(f.status == 'pending' for f in student.follow_ups.all())
         
         student_data = {
             'id': student.id,
             'name': student.name,
             'school_id': student.school_id,
             'department': student.department,
-            'total_visits': student.symptom_records.count(),
+            'total_visits': len(all_symptoms),
             'last_visit': last_visit.isoformat() if last_visit else None,
-            'on_medication': active_meds.exists(),
-            'medication_count': active_meds.count(),
+            'on_medication': bool(active_meds),
+            'medication_count': len(active_meds),
             'adherence_rate': adherence_rate,
             'pending_followup': pending_followups,
-            'recent_symptoms': recent_symptoms.exists(),
+            'recent_symptoms': bool(recent_symptoms),
             'recent_symptom_reports': SymptomRecordSerializer(recent_symptoms, many=True).data,
             'medications': MedicationSerializer(active_meds, many=True).data
         }
