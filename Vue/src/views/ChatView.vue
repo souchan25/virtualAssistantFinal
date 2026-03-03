@@ -207,6 +207,7 @@
 <script setup lang="ts">
 import { ref, nextTick, watch } from 'vue'
 import { useChatStore } from '@/stores/chat'
+import DOMPurify from 'dompurify'
 
 const chatStore = useChatStore()
 const messageInput = ref('')
@@ -256,7 +257,7 @@ function formatBotMessage(content: string): string {
   // Format line breaks
   html = html.replace(/\n/g, '<br>')
   
-  return html
+  return DOMPurify.sanitize(html)
 }
 
 async function sendMessage() {
