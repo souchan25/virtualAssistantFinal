@@ -1,0 +1,4 @@
+## 2026-03-03 - [Cross-Site Scripting (XSS) in AI Chat Bot Responses]
+**Vulnerability:** The AI chat bot's responses were directly rendered to the DOM in `Vue/src/views/ChatView.vue` using `v-html="formatBotMessage(message.content)"` without sanitization. If the AI could be manipulated into generating malicious HTML/script tags (e.g., via prompt injection), these tags would execute in the user's browser resulting in XSS.
+**Learning:** Even when output comes from an AI model that appears to return "trusted" or "structured" data, dynamically rendered HTML must always be sanitized to prevent prompt injection or hallucinated content from becoming an XSS vector.
+**Prevention:** In this codebase, dynamically rendered HTML content in the Vue frontend (e.g., using `v-html`) should always be sanitized with the `dompurify` library (via `DOMPurify.sanitize()`).
