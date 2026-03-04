@@ -1165,9 +1165,23 @@ def student_directory(request):
     from rest_framework.pagination import PageNumberPagination
     
     queryset = User.objects.filter(role='student').prefetch_related(
-        'symptom_records',
-        'medications',
-        'follow_ups'
+        Prefetch(
+            'symptom_records',
+            queryset=SymptomRecord.objects.order_by('-created_at'),
+            to_attr='all_symptom_records'
+        ),
+        Prefetch(
+            'medications',
+            queryset=Medication.objects.prefetch_related(
+                Prefetch('logs', to_attr='all_logs')
+            ),
+            to_attr='all_medications'
+        ),
+        Prefetch(
+            'follow_ups',
+            queryset=FollowUp.objects.filter(status='pending'),
+            to_attr='pending_followups'
+        )
     ).order_by('name')
     
     # Filters
@@ -1207,34 +1221,42 @@ def student_directory(request):
     # Build enriched student data
     students_data = []
     for student in result_page:
-        # Get symptom records
-        recent_symptoms = student.symptom_records.order_by('-created_at')[:5]
-        last_visit = recent_symptoms.first().created_at if recent_symptoms.exists() else None
+        # Get symptom records from prefetched attribute
+        all_symptoms = student.all_symptom_records
+        recent_symptoms = all_symptoms[:5]
+        last_visit = recent_symptoms[0].created_at if recent_symptoms else None
         
-        # Get medications
-        active_meds = student.medications.filter(is_active=True)
+        # Get active medications from prefetched attribute
+        active_meds = [m for m in student.all_medications if m.is_active]
         
-        # Calculate adherence
-        med_logs = MedicationLog.objects.filter(medication__student=student)
-        total_logs = med_logs.count()
-        taken_logs = med_logs.filter(status='taken').count()
+        # Calculate adherence in Python using prefetched relations to avoid N+1
+        total_logs = 0
+        taken_logs = 0
+        for med in student.all_medications:
+            # We must use all_logs since we attached logs there
+            if hasattr(med, 'all_logs'):
+                for log in med.all_logs:
+                    total_logs += 1
+                    if log.status == 'taken':
+                        taken_logs += 1
+
         adherence_rate = round((taken_logs / total_logs * 100) if total_logs > 0 else 100, 1)
         
-        # Get follow-ups
-        pending_followups = student.follow_ups.filter(status='pending').exists()
+        # Get follow-ups from prefetched attribute
+        has_pending_followup = len(student.pending_followups) > 0
         
         student_data = {
             'id': student.id,
             'name': student.name,
             'school_id': student.school_id,
             'department': student.department,
-            'total_visits': student.symptom_records.count(),
+            'total_visits': len(all_symptoms),
             'last_visit': last_visit.isoformat() if last_visit else None,
-            'on_medication': active_meds.exists(),
-            'medication_count': active_meds.count(),
+            'on_medication': len(active_meds) > 0,
+            'medication_count': len(active_meds),
             'adherence_rate': adherence_rate,
-            'pending_followup': pending_followups,
-            'recent_symptoms': recent_symptoms.exists(),
+            'pending_followup': has_pending_followup,
+            'recent_symptoms': len(recent_symptoms) > 0,
             'recent_symptom_reports': SymptomRecordSerializer(recent_symptoms, many=True).data,
             'medications': MedicationSerializer(active_meds, many=True).data
         }

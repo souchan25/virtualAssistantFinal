@@ -268,11 +268,22 @@ class MedicationSerializer(serializers.ModelSerializer):
     
     def get_recent_logs(self, obj):
         """Get last 7 logs"""
+        if hasattr(obj, 'all_logs'):
+            logs = obj.all_logs[:7]
+            return MedicationLogSerializer(logs, many=True).data
         logs = obj.logs.all()[:7]
         return MedicationLogSerializer(logs, many=True).data
     
     def get_adherence_rate(self, obj):
         """Calculate adherence percentage"""
+        if hasattr(obj, 'all_logs'):
+            logs = [log for log in obj.all_logs if log.status != 'pending']
+            total_logs = len(logs)
+            if total_logs == 0:
+                return None
+            taken_logs = sum(1 for log in logs if log.status == 'taken')
+            return round((taken_logs / total_logs) * 100, 1)
+
         total_logs = obj.logs.exclude(status='pending').count()
         if total_logs == 0:
             return None
