@@ -3,10 +3,12 @@
   <div class="fixed bottom-6 right-6 z-50">
     <button
       @click="openEmergency"
-      class="group relative bg-red-600 hover:bg-red-700 text-white rounded-full p-6 shadow-2xl transform transition-all duration-200 hover:scale-110 animate-pulse-slow"
+      class="group relative bg-red-600 hover:bg-red-700 text-white rounded-full p-6 shadow-2xl transform transition-all duration-200 hover:scale-110 animate-pulse-slow focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-red-400 focus-visible:ring-offset-2"
       aria-label="Emergency SOS"
+      aria-haspopup="dialog"
+      :aria-expanded="showEmergencyModal"
     >
-      <span class="text-3xl">🚨</span>
+      <span class="text-3xl" aria-hidden="true">🚨</span>
       <span class="absolute -top-1 -right-1 flex h-4 w-4">
         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
         <span class="relative inline-flex rounded-full h-4 w-4 bg-red-500"></span>
@@ -28,20 +30,27 @@
       class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[100] p-4"
       @click.self="closeModal"
     >
-      <div class="bg-white rounded-lg max-w-md w-full p-6 relative animate-fade-in">
+      <div
+        class="bg-white rounded-lg max-w-md w-full p-6 relative animate-fade-in"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="emergency-dialog-title"
+        aria-describedby="emergency-dialog-desc"
+      >
         <!-- Close button -->
         <button
           @click="closeModal"
-          class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+          class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 rounded-full p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cpsu-green focus-visible:ring-offset-1"
+          aria-label="Close emergency modal"
         >
-          <span class="text-2xl">&times;</span>
+          <span class="text-2xl" aria-hidden="true">&times;</span>
         </button>
 
         <!-- Header -->
         <div class="text-center mb-6">
-          <div class="text-6xl mb-4">🚨</div>
-          <h2 class="text-3xl font-bold text-red-600 mb-2">Emergency SOS</h2>
-          <p class="text-gray-600">Help will be dispatched immediately</p>
+          <div class="text-6xl mb-4" aria-hidden="true">🚨</div>
+          <h2 id="emergency-dialog-title" class="text-3xl font-bold text-red-600 mb-2">Emergency SOS</h2>
+          <p id="emergency-dialog-desc" class="text-gray-600">Help will be dispatched immediately</p>
         </div>
 
         <!-- Form -->
@@ -58,18 +67,18 @@
               Detecting your location...
             </div>
             <div v-else-if="gpsStatus === 'success'" class="flex items-center gap-2 mb-2 bg-green-50 text-green-700 px-3 py-2 rounded-lg text-sm">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
               </svg>
               GPS location detected
-              <button type="button" @click="getGPSLocation" class="ml-auto text-green-800 hover:underline text-xs font-medium">Refresh</button>
+              <button type="button" @click="getGPSLocation" class="ml-auto text-green-800 hover:underline text-xs font-medium rounded px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-800">Refresh</button>
             </div>
             <div v-else-if="gpsStatus === 'error'" class="flex items-center gap-2 mb-2 bg-yellow-50 text-yellow-700 px-3 py-2 rounded-lg text-sm">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5C3.312 17.333 4.274 19 5.814 19z"/>
               </svg>
               {{ gpsError }}
-              <button type="button" @click="getGPSLocation" class="ml-auto text-yellow-800 hover:underline text-xs font-medium">Retry</button>
+              <button type="button" @click="getGPSLocation" class="ml-auto text-yellow-800 hover:underline text-xs font-medium rounded px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-800">Retry</button>
             </div>
 
             <input
@@ -122,14 +131,14 @@
             <button
               type="button"
               @click="closeModal"
-              class="flex-1 btn-outline"
+              class="flex-1 btn-outline focus-visible:ring-cpsu-green focus-visible:ring-offset-2 focus-visible:outline-none focus-visible:ring-2"
               :disabled="loading"
             >
               Cancel
             </button>
             <button
               type="submit"
-              class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition disabled:opacity-50"
+              class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
               :disabled="loading"
             >
               <span v-if="!loading">🚨 Send SOS</span>
