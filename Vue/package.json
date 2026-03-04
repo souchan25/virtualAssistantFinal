@@ -11,8 +11,10 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore"
   },
   "dependencies": {
+    "@types/dompurify": "^3.2.0",
     "axios": "^1.6.7",
     "chart.js": "^4.5.1",
+    "dompurify": "^3.3.1",
     "pinia": "^2.1.7",
     "vue": "^3.4.21",
     "vue-chartjs": "^5.3.3",
