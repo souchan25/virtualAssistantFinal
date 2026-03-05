@@ -311,7 +311,8 @@ const submitPrescription = async () => {
       params: { search: form.value.student_school_id }
     })
 
-    const studentsData = studentResponse.data?.students || studentResponse.data || []
+    const responseData = studentResponse.data
+    const studentsData = responseData?.results || responseData?.students || responseData || []
     const studentList = Array.isArray(studentsData) ? studentsData : []
 
     if (studentList.length === 0) {
