@@ -1,0 +1,3 @@
+## 2024-05-18 - Optimized N+1 queries using prefetch_related and to_attr
+**Learning:** Using `Prefetch` with `to_attr` caches related lists in Python, skipping further queries when calculating sizes or looping over children (e.g. `student.medications.count()` vs `len(student.prefetched_medications)`). This resolves nested N+1 loop performance issues for serialization in DRF APIs where `.all()` inside SerializerMethodFields triggers extra queries.
+**Action:** Always map complex relationship calculations that are iterated on in lists directly onto properties via `to_attr` instead of letting ORM lazy-load during serialization inside loops.

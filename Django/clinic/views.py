@@ -1164,10 +1164,25 @@ def student_directory(request):
     from django.db.models import Prefetch, Avg
     from rest_framework.pagination import PageNumberPagination
     
+    # Use Prefetch with to_attr to fetch all necessary related data efficiently
+    # and avoid N+1 queries during serialization.
     queryset = User.objects.filter(role='student').prefetch_related(
-        'symptom_records',
-        'medications',
-        'follow_ups'
+        Prefetch(
+            'symptom_records',
+            queryset=SymptomRecord.objects.all().order_by('-created_at'),
+            to_attr='prefetched_symptom_records'
+        ),
+        Prefetch(
+            'medications',
+            queryset=Medication.objects.all().prefetch_related(
+                Prefetch('logs', to_attr='prefetched_logs')
+            ),
+            to_attr='prefetched_medications'
+        ),
+        Prefetch(
+            'follow_ups',
+            to_attr='prefetched_follow_ups'
+        )
     ).order_by('name')
     
     # Filters
@@ -1208,33 +1223,40 @@ def student_directory(request):
     students_data = []
     for student in result_page:
         # Get symptom records
-        recent_symptoms = student.symptom_records.order_by('-created_at')[:5]
-        last_visit = recent_symptoms.first().created_at if recent_symptoms.exists() else None
+        all_symptoms = getattr(student, 'prefetched_symptom_records', [])
+        recent_symptoms = all_symptoms[:5]
+        last_visit = recent_symptoms[0].created_at if recent_symptoms else None
         
         # Get medications
-        active_meds = student.medications.filter(is_active=True)
+        all_meds = getattr(student, 'prefetched_medications', [])
+        active_meds = [m for m in all_meds if m.is_active]
         
         # Calculate adherence
-        med_logs = MedicationLog.objects.filter(medication__student=student)
-        total_logs = med_logs.count()
-        taken_logs = med_logs.filter(status='taken').count()
+        total_logs = 0
+        taken_logs = 0
+        for med in all_meds:
+            logs = getattr(med, 'prefetched_logs', [])
+            total_logs += len(logs)
+            taken_logs += sum(1 for log in logs if log.status == 'taken')
+
         adherence_rate = round((taken_logs / total_logs * 100) if total_logs > 0 else 100, 1)
         
         # Get follow-ups
-        pending_followups = student.follow_ups.filter(status='pending').exists()
+        all_follow_ups = getattr(student, 'prefetched_follow_ups', [])
+        pending_followups = any(f.status == 'pending' for f in all_follow_ups)
         
         student_data = {
             'id': student.id,
             'name': student.name,
             'school_id': student.school_id,
             'department': student.department,
-            'total_visits': student.symptom_records.count(),
+            'total_visits': len(all_symptoms),
             'last_visit': last_visit.isoformat() if last_visit else None,
-            'on_medication': active_meds.exists(),
-            'medication_count': active_meds.count(),
+            'on_medication': len(active_meds) > 0,
+            'medication_count': len(active_meds),
             'adherence_rate': adherence_rate,
             'pending_followup': pending_followups,
-            'recent_symptoms': recent_symptoms.exists(),
+            'recent_symptoms': len(recent_symptoms) > 0,
             'recent_symptom_reports': SymptomRecordSerializer(recent_symptoms, many=True).data,
             'medications': MedicationSerializer(active_meds, many=True).data
         }
