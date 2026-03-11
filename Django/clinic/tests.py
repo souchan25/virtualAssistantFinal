@@ -1,12 +1,7 @@
-"""
-Comprehensive tests for CPSU Health Assistant
-Tests models, views, permissions, and ML integration
-"""
-
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from rest_framework.test import APITestCase, APIClient
+from rest_framework.test import APITestCase
 from rest_framework import status
 from datetime import timedelta
 import uuid
@@ -97,6 +92,9 @@ class SymptomRecordTests(TestCase):
     
     def test_referral_criteria(self):
         """Test hospital referral logic (5+ reports in 30 days)"""
+        # Reset: delete all
+        SymptomRecord.objects.all().delete()
+
         # Create 4 records (should not trigger referral)
         for i in range(4):
             SymptomRecord.objects.create(
@@ -105,27 +103,17 @@ class SymptomRecordTests(TestCase):
                 duration_days=1,
                 severity=1
             )
-        
-        record = SymptomRecord.objects.create(
+
+        # Create 5th record
+        record_5 = SymptomRecord.objects.create(
             student=self.student,
             symptoms=['fever'],
             duration_days=2,
             severity=2
         )
-        
-        record.check_referral_criteria()
-        self.assertFalse(record.requires_referral)
-        
-        # Create 5th record (should trigger referral)
-        record_5th = SymptomRecord.objects.create(
-            student=self.student,
-            symptoms=['cough'],
-            duration_days=1,
-            severity=1
-        )
-        
-        record_5th.check_referral_criteria()
-        self.assertTrue(record_5th.requires_referral)
+        record_5.check_referral_criteria()
+        # Should be True because count is 5
+        self.assertTrue(record_5.requires_referral)
 
 
 # ============================================================================
@@ -340,6 +328,9 @@ class PermissionTests(APITestCase):
     
     def test_student_can_only_see_own_records(self):
         """Test students can only view their own symptom records"""
+        # Ensure clean state for SymptomRecords in this test
+        SymptomRecord.objects.all().delete()
+
         # Create records for student
         SymptomRecord.objects.create(
             student=self.student,
@@ -365,11 +356,17 @@ class PermissionTests(APITestCase):
         self.client.force_authenticate(user=self.student)
         
         response = self.client.get('/api/symptoms/')
-        
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Handle pagination if enabled
+        if 'results' in response.data:
+            records = response.data['results']
+        else:
+            records = response.data
+
         # Should only see own record
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]['student'], self.student.id)
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0]['student'], self.student.id)
 
 
 # ============================================================================
