@@ -1982,14 +1982,14 @@ def followup_list(request):
     Query params: status, student_id (staff only)
     """
     if request.user.role == 'student':
-        followups = FollowUp.objects.filter(student=request.user)
+        followups = FollowUp.objects.select_related('student', 'symptom_record').filter(student=request.user)
     else:
         # Staff can see all or filter by student
         student_id = request.GET.get('student_id')
         if student_id:
-            followups = FollowUp.objects.filter(student__school_id=student_id)
+            followups = FollowUp.objects.select_related('student', 'symptom_record').filter(student__school_id=student_id)
         else:
-            followups = FollowUp.objects.all()
+            followups = FollowUp.objects.select_related('student', 'symptom_record').all()
     
     # Filter by status
     status_filter = request.GET.get('status')
