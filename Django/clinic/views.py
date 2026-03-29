@@ -4,10 +4,11 @@ Implements all endpoints for student and clinic staff
 """
 
 from rest_framework import viewsets, status, generics, serializers
-from rest_framework.decorators import action, api_view, permission_classes, renderer_classes
+from rest_framework.decorators import action, api_view, permission_classes, renderer_classes, throttle_classes
 from rest_framework.response import Response
 from rest_framework.exceptions import APIException
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from .throttles import AuthRateThrottle
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, get_user_model
 from django.utils import timezone
@@ -220,6 +221,7 @@ from django.conf import settings
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([AuthRateThrottle])
 def register_user(request):
     """
     Register new user (student or staff)
@@ -254,9 +256,9 @@ def register_user(request):
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([AuthRateThrottle])
 def login_user(request):
     """
     User login with school_id and password
@@ -286,7 +288,6 @@ def login_user(request):
         {'error': 'Invalid credentials'},
         status=status.HTTP_401_UNAUTHORIZED
     )
-
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -344,6 +345,7 @@ def change_password(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([AuthRateThrottle])
 def forgot_password(request):
     """
     Send a password reset email via Brevo.
@@ -396,9 +398,9 @@ The CPSU Clinic Team"""
     # Always return success message to prevent user enumeration
     return Response({'message': 'If an account exists with that email address, a password reset link has been sent.'})
 
-
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([AuthRateThrottle])
 def reset_password_confirm(request):
     """
     Verify reset token and set new password.
@@ -439,6 +441,7 @@ def reset_password_confirm(request):
         return Response({'message': 'Password has been reset successfully. You can now log in.'})
     else:
         return Response({'error': 'The password reset link is invalid or has expired.'}, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 # ============================================================================

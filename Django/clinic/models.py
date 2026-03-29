@@ -254,6 +254,12 @@ class SymptomRecord(models.Model):
             created_at__gte=thirty_days_ago
         ).count()
         
+        # If this record hasn't been saved yet, it won't be in the count.
+        # If it has been saved, it IS in the count.
+        # But for new records, we usually call this before or after save.
+        # In submit_symptoms view, it's created, then checked, then saved again.
+        # So count includes current record.
+
         if recent_reports >= 5:
             self.requires_referral = True
             if not self.referral_triggered:
